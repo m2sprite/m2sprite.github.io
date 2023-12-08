@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<title>CE HW1</title>
+<head><meta name="color-scheme" content="light dark"></head>
+<body>
+<pre style="word-wrap: break-word;
+            white-space: pre-wrap;">
+/* ========================================================================
+   read_bin.c - _m2sprite_ 8086 disassembly hw 1 listing 0037 - 0038
+   ======================================================================== */
+#include &lt;stdio.h&gt;
+#include &lt;stdint.h&gt;
+#include &lt;stdlib.h&gt;
+
+#define OP_MASK   0b11111100
+#define D_MASK    0b00000010
+#define W_MASK    0b00000001
+#define MOD_MASK  0b11000000
+#define REG_MASK  0b00111000
+#define RM_MASK   0b00000111
+
+const char *w_1[] = {
+  "ax",
+  "cx",
+  "dx",
+  "bx",
+  "sp",
+  "bp",
+  "si",
+  "di",
+};
+
+const char *w_0[] = {
+  "al",
+  "cl",
+  "dl",
+  "bl",
+  "ah",
+  "ch",
+  "dh",
+  "bh",
+};
+
+void print_binary(uint8_t value){
+  for(int i = 7; i&gt;=0; i--) {
+    printf("%d", (value &gt;&gt; i) & 1);
+  }
+  printf("\n");
+}
+
+int main(void) {
+  FILE* in;
+
+  in = fopen("listing_0038", "rb");
+
+  if(in == NULL) {
+    return 3;
+  }
+
+  //get file size
+  fseek(in,0,SEEK_END);
+  long int file_size = ftell(in);
+  fseek(in,0,SEEK_SET);
+
+  printf("bits of file: %ld\n", (file_size) * 8);
+
+  size_t to_alloc = file_size / sizeof(uint8_t);
+  uint8_t *buffer = (uint8_t *)malloc(to_alloc);
+
+  if(buffer == NULL) {
+    perror("error allocating buffer");
+    fclose(in);
+    return 1;
+  }
+
+  fread(buffer, 1, file_size, in);
+
+  for(size_t i = 0; i &lt; file_size; i+=2)
+  {
+    uint8_t op =    buffer[i] & OP_MASK;
+    uint8_t d_bit = buffer[i] & D_MASK;
+    uint8_t w_bit = buffer[i] & W_MASK;
+    uint8_t mod =   buffer[i+1] & MOD_MASK;
+    uint8_t reg =   buffer[i+1] & REG_MASK;
+    uint8_t rm =    buffer[i+1] & RM_MASK;
+
+    //OPPP
+    switch(op){
+
+      case 0b10001000:
+                printf("mov");
+                //printf("register/memory to/from register\n");
+                break;
+
+      case 0b11000100:
+                printf("mov");
+                if(d_bit==0b00000010)
+                {
+                  //printf("immediate to register/memory\n");
+                }
+                break;
+
+      case 0b10110000:
+                printf("mov");
+                //printf("immediate to register\n");
+                break;
+
+      case 0b10100000:
+                printf("mov");
+                if(d_bit==0b00000010)
+                {
+                 // printf("Accumulator to memory\n");
+                }else{
+                 // printf("Memory to accumulator\n");
+                }
+                break;
+
+      case 0b10001100:
+                printf("mov");
+                if(d_bit==0b00000010)
+                {
+                  //printf("Register/memory to segment register\n");
+                }else{
+                  //printf("Segment register to register/memory\n");
+                }
+                break;
+
+    }
+
+    printf(" ");
+
+    //MOD//
+    //3 no displacement
+    //2 memory mode 16 bit displacement
+    //1 memory mode 8  bit displacement
+    //0 memory mode no     displacement
+
+    uint8_t direction_code = d_bit &gt;&gt; 1;
+    uint8_t mod_code = mod &gt;&gt; 6;
+
+    //printf("\n%d\n", mod_code);
+
+    if(mod_code == 3){
+      //W//word byte operation
+      if(w_bit == 1)
+      {
+        if(direction_code  == 1){
+          printf("%s",w_1[reg &gt;&gt; 3]);
+          printf(", ");
+          printf("%s",w_1[rm]);
+        }else{
+          printf("%s",w_1[rm]);
+          printf(", ");
+          printf("%s",w_1[reg &gt;&gt; 3]);
+        }
+      }
+      else if(w_bit == 0)
+      {
+        if(direction_code == 1){
+          printf("%s",w_0[reg &gt;&gt; 3]);
+          printf(", ");
+          printf("%s",w_0[rm]);
+        }else{
+          printf("%s",w_0[rm]);
+          printf(", ");
+          printf("%s",w_0[reg &gt;&gt; 3]);
+
+        }
+      }
+
+    }else if(mod_code == 0){
+      printf("unimplemented\n");
+    }else if(mod_code == 1){
+      printf("unimplemented\n");
+    }else if(mod_code == 2){
+      printf("unimplemented\n");
+    }
+
+    printf("\n");
+  }
+
+  free(buffer);
+  fclose(in);
+
+  return (0);
+}
+</body>

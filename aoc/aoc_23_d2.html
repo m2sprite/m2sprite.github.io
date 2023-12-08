@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<title>AOC 2023 D2</title>
+<head>
+  <meta name="color-scheme" content="light dark"></meta>
+<style>
+  pre {
+     word-wrap: break-word;
+     white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<pre>
+/* ========================================================================
+   aoc_23_d2.c - _m2sprite_ solution to Advent of Code 2023 Day 02
+   ======================================================================== */
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stdint.h&gt;
+
+#define SMOL "smol"
+#define BIG  "BIG"
+
+#define red_constraint 12
+#define green_constraint 13
+#define blue_constraint 14
+
+#define digit_char_to_int(x) ((x)-48)
+#define is_digit_char(x) ((x) &gt;= 48 && (x) &lt;= 57)
+
+
+void print_buffer(char *buffer)
+{
+  printf("%s", buffer);
+}
+
+size_t digit_amt(char *buffer, size_t idx_to_search_from,  int *current_digit)
+{
+
+  //will always be one by defaut after current car
+  ++idx_to_search_from;
+  size_t next_iter_amt = 0;
+
+  while(is_digit_char(buffer[idx_to_search_from])){
+    (*current_digit) *= 10;
+    (*current_digit) += (digit_char_to_int(buffer[idx_to_search_from]));
+
+    //printf("%c", buffer[idx_to_search_from]);
+
+    ++idx_to_search_from;
+    ++next_iter_amt;
+  }
+
+
+  return next_iter_amt;
+}
+
+
+int main(void)
+{
+  FILE *file;
+
+  file = fopen(BIG, "rb");
+
+  if(file == NULL)
+  {
+    printf("Error opening file\n");
+    return 3;
+  }
+
+  fseek(file,0,SEEK_END);
+  long int file_size = ftell(file);
+  rewind(file);
+
+  size_t to_alloc = file_size / sizeof(char);
+  printf("read size: %ld bytes %ld bits %ld chars \n", file_size, file_size*8, to_alloc);
+  char *buffer = (char *)malloc(to_alloc);
+
+  if(buffer == NULL) {
+    perror("error allocating buffer");
+    fclose(file);
+    return 1;
+  }
+
+  fread(buffer, 1, to_alloc, file);
+  fclose(file);
+  //print_buffer(buffer);
+
+  int is_new_line = 1;
+
+  int cg_red_max= 0;
+
+  int cg_green_max = 0;
+
+  int cg_blue_max = 0;
+
+  int current_game_id = 0;
+  int possible_game_sum = 0;
+
+  int sum_of_prods = 0;
+
+
+  for(size_t i = 0; i &lt; to_alloc; i++)
+  {
+    if(is_digit_char(buffer[i])){
+      //check for length of number
+      //digit extraction
+      int found_digit = digit_char_to_int(buffer[i]);
+      i+=digit_amt(buffer, i, &found_digit);
+
+      //digit classification
+      if(is_new_line){
+        current_game_id = found_digit;
+        printf("NEW GAME: %d\n",found_digit);
+        is_new_line = 0;
+      }else{
+        switch(buffer[i+2])
+        {
+          case 'r':{
+            printf("%d red\n",  found_digit);
+
+            if(found_digit &gt; cg_red_max){
+              cg_red_max = found_digit;
+            }
+
+
+          }break;
+
+          case 'g':{
+            printf("%d green\n",  found_digit);
+
+            if(found_digit &gt; cg_green_max){
+              cg_green_max = found_digit;
+            }
+
+
+          }break;
+
+          case 'b':{
+            printf("%d blue\n",  found_digit);
+
+            if(found_digit &gt; cg_blue_max){
+              cg_blue_max = found_digit;
+            }
+
+
+
+          }break;
+        }
+      }
+    }else if(buffer[i] == '\n'){
+      is_new_line = 1;
+
+      printf("GAME %d had maximum: %d Reds %d Greens %d Blues\n", current_game_id, cg_red_max, cg_green_max, cg_blue_max);
+      int product_of_maxs =  cg_red_max*cg_green_max*cg_blue_max;
+      printf("Prodcut of maxs %d\n", product_of_maxs);
+
+      //accumulatesums
+      if((cg_red_max &lt;= red_constraint) && (cg_green_max &lt;= green_constraint) &&  (cg_blue_max &lt;= blue_constraint)){
+        possible_game_sum += current_game_id;
+        printf("PASSED\n");
+      }
+      sum_of_prods += product_of_maxs;
+
+      cg_red_max = 0;
+      cg_green_max = 0;
+      cg_blue_max = 0;
+    }
+  }
+
+  printf("possible_game_sum: %d\n", possible_game_sum);
+  printf("sum_of_maxs_prods: %d\n", sum_of_prods);
+
+  free(buffer);
+  return 0;
+}
+
+</pre>
+</body>
+</html>

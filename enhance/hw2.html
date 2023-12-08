@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<title>CE HW2</title>
+
+<head><meta name="color-scheme" content="light dark"></head>
+
+<body>
+<pre style="word-wrap: break-word;
+            white-space: pre-wrap;">
+
+/* ========================================================================
+   read_bin.c - _m2sprite_ 8086 disassembly hw 2 listing 0039
+   ======================================================================== */
+#include &lt;stdio.h&gt;
+#include &lt;stdint.h&gt;
+#include &lt;stdlib.h&gt;
+
+#define BIN_FILE  "listing_0039"
+
+#define IN_PLACE_MASK 0b11110000
+#define OP_MASK       0b11111100
+#define D_MASK        0b00000010
+#define W_MASK        0b00000001
+#define MOD_MASK      0b11000000
+#define REG_MASK      0b00111000
+#define RM_MASK       0b00000111
+
+const char *w_1[] = {
+  "ax",
+  "cx",
+  "dx",
+  "bx",
+  "sp",
+  "bp",
+  "si",
+  "di",
+};
+
+const char *w_0[] = {
+  "al",
+  "cl",
+  "dl",
+  "bl",
+  "ah",
+  "ch",
+  "dh",
+  "bh",
+};
+
+const char *mod_0rm[] = {
+  "[bx + si]",
+  "[bx + di]",
+  "[bp + si]",
+  "[bp + di]",
+  "si",
+  "di",
+  "direct address",
+  "bx",
+};
+
+const char *mod_1rm[] = {
+  "bx + si",
+  "bx + di",
+  "bp + si",
+  "bp + di",
+  "si ",
+  "di",
+  "bp",
+  "bx",
+};
+
+const char *mod_2rm[] = {
+  "bx + si",
+  "bx + di",
+  "bp + si",
+  "bp + di",
+  "si",
+  "di",
+  "bp",
+  "bx",
+};
+
+void print_binary(uint8_t value){
+  for(int i = 7; i>=0; i--) {
+    printf("%d", (value >> i) & 1);
+  }
+  printf("\n");
+}
+
+void print_binary_16(uint16_t value){
+  for(int i = 15; i>=0; i--) {
+    printf("%d", (value >> i) & 1);
+  }
+  printf("\n");
+}
+
+int main(void) {
+  FILE* in;
+
+  in = fopen(BIN_FILE, "rb");
+
+  if(in == NULL) {
+    return 3;
+  }
+
+  //get file size
+  fseek(in,0,SEEK_END);
+  long int file_size = ftell(in);
+  fseek(in,0,SEEK_SET);
+
+  printf("bits of file: %ld\n", (file_size) * 8);
+
+  size_t to_alloc = file_size * sizeof(uint8_t);
+  uint8_t *buffer = (uint8_t *)malloc(to_alloc);
+
+  if(buffer == NULL) {
+    perror("error allocating buffer");
+    fclose(in);
+    return 1;
+  }
+
+  fread(buffer, 1, file_size, in);
+
+  for(size_t i = 0; i < file_size;)
+  {
+
+    uint8_t first_op = (buffer[i] & IN_PLACE_MASK) >> 4;
+
+    if(first_op == 0b0001011){
+      printf("mov ");
+
+      uint8_t w_bit = (buffer[i] & 0b00001000) >> 3;
+
+      //word op
+      if(w_bit)
+      {
+        uint8_t reg = (buffer[i] & 0b00000111);
+        printf("%s, ", w_1[reg]);
+
+        uint16_t lo = (buffer[i+1]);
+        uint16_t hi = (buffer[i+2]) << 8;
+        uint16_t combined = (lo | hi);
+        printf("%d\n", combined);
+
+        i+=3;
+
+      }
+
+      //8 bit op
+      else
+      {
+        uint8_t reg = (buffer[i] & 0b00000111);
+        printf("%s, ", w_0[reg]);
+
+        uint8_t number = (buffer[i+1]);
+        printf("%d\n", number);
+
+        i+=2;
+      }
+
+    }else{
+      //print_binary(buffer[i]);
+      uint8_t op_byte = (buffer[i] & OP_MASK);
+
+      switch(op_byte)
+      {
+        case 0b10001000 :
+          {
+          uint8_t d_bit = (buffer[i] & D_MASK) >> 1;
+          uint8_t w_bit = (buffer[i] & W_MASK);
+
+          i++;
+          //print_binary(buffer[i]);
+          uint8_t mod = (buffer[i] & MOD_MASK)>>6;
+          uint8_t reg = (buffer[i] & REG_MASK)>>3;
+          uint8_t rm  = (buffer[i] & RM_MASK);
+
+          if(mod == 3)
+          {
+            printf("mov ");
+            if(w_bit)
+            {
+              if(d_bit){
+                printf("%s, %s\n", w_1[reg], w_1[rm]);
+              }else{
+                printf("%s, %s\n", w_1[rm], w_1[reg]);
+              }//dbit
+            }else{
+              if(d_bit){
+                printf("%s, %s\n", w_0[reg], w_0[rm]);
+              }else{
+                printf("%s, %s\n", w_0[rm], w_0[reg]);
+              }//dbit
+            }//wbit
+
+            i++;
+          }//mod3
+
+          if(mod == 2)
+          {
+            /*
+            printf("mod: %d ", mod);
+            printf("reg: %d ", reg);
+            printf("rm: %d \n",rm);
+            */
+
+            //printf("%s\n",mod_2rm[rm]);
+
+            //get lo
+            i++;
+            uint16_t lo = (buffer[i]);
+
+            //get hi
+            i++;
+            uint16_t hi = (buffer[i]) << 8;
+
+            //combine them
+            uint16_t combined = (lo | hi);
+
+            printf("mov ");
+            if(combined != 0)
+            {
+              if(w_bit){
+                if(d_bit){
+                  printf("%s, [%s + %d]\n", w_1[reg], mod_2rm[rm], combined);
+                }else{
+                  printf("%s, [%s + %d]\n", mod_2rm[rm], w_1[reg], combined);
+                }//dbit
+              }else{
+                if(d_bit){
+                  printf("%s, [%s + %d]\n", w_0[reg], mod_2rm[rm], combined);
+                }else{
+                  printf("%s, [%s + %d]\n", mod_2rm[rm], w_0[reg], combined);
+                }//dbit
+              }//wbit
+            }else{
+              if(w_bit){
+                if(d_bit){
+                  printf("%s, [%s]\n", w_1[reg], mod_2rm[rm]);
+                }else{
+                  printf("%s, [%s]\n", mod_2rm[rm], w_1[reg]);
+                }//dbit
+              }else{
+                if(d_bit){
+                  printf("%s, [%s]\n", w_0[reg], mod_2rm[rm]);
+                }else{
+                  printf("%s, [%s]\n", mod_2rm[rm], w_0[reg]);
+                }//dbit
+              }//wbit
+            }//combined non 0
+
+            //set for next
+            i++;
+          }//mod2
+
+          if(mod == 1)
+          {
+            /*
+            printf("mod: %d ", mod);
+            printf("reg: %d ", reg);
+            printf("rm: %d \n",rm);
+            */
+
+            printf("mov ");
+            //read next 8 bits and get value to displace by
+            i++;
+            if(buffer[i] != 0)
+            {
+              if(w_bit){
+                if(d_bit){
+                  printf("%s, [%s + %d]\n", w_1[reg], mod_1rm[rm], buffer[i]);
+                }else{
+                  printf("%s, [%s + %d]\n", mod_1rm[rm], w_1[reg], buffer[i]);
+                }//dbit
+              }else{
+                if(d_bit){
+                  printf("%s, [%s + %d]\n", w_0[reg], mod_1rm[rm], buffer[i]);
+                }else{
+                  printf("%s, [%s + %d]\n",  mod_1rm[rm],w_0[reg], buffer[i]);
+                }//dbit
+              }//wbit
+            }else{
+              if(w_bit){
+                if(d_bit){
+                  printf("%s, [%s]\n", w_1[reg], mod_1rm[rm]);
+                }else{
+                  printf("%s, [%s]\n", mod_1rm[rm], w_1[reg]);
+                }//dbit
+              }else{
+                if(d_bit){
+                  printf("%s, [%s]\n", w_0[reg], mod_1rm[rm]);
+                }else{
+                  printf("%s, [%s]\n", mod_1rm[rm], w_0[reg]);
+                }//dbit
+              }//wbit
+            }//buffer non zero value
+
+            //set for next
+            i++;
+          }//mod1
+
+          if(mod == 0)
+          {
+            if(reg == 6)
+            {
+              return 2;
+              //i+=2;
+
+            }else{
+              printf("mov ");
+              if(w_bit){
+                if(d_bit){
+                  printf("%s, %s\n", w_1[reg], mod_0rm[rm]);
+                }else{
+                  printf("%s, %s\n", mod_0rm[rm], w_1[reg]);
+                }
+              }else{
+                if(d_bit){
+                  printf("%s, %s\n", w_0[reg], mod_0rm[rm]);
+                }else{
+                  printf("%s, %s\n", mod_0rm[rm], w_0[reg]);
+                }
+              }
+              i++;
+            }
+          }//mod0
+
+          }break;
+
+
+
+
+
+      }//swtich
+
+
+    }//direct or no
+
+
+  }//for loop
+
+
+
+
+  free(buffer);
+  fclose(in);
+
+  return (0);
+}
+
+</body>

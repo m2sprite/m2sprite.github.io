@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+<title>AOC 2023 D1</title>
+
+<head><meta name="color-scheme" content="light dark"></head>
+
+<body>
+<pre style="word-wrap: break-word;
+            white-space: pre-wrap;">
+/* ========================================================================
+   aoc_23_d1.c - _m2sprite_ solution to Advent of Code 2023 Day 01
+   ======================================================================== */
+
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stdint.h&gt;
+
+#define BIG "day_1_input"
+#define SMOL "smol"
+#define SMOL_CALIB "SMOL_CALIB"
+
+char one[] = {'n','e'};
+char two[] = {'w','o'};
+char three[] = {'h','r','e','e'};
+char four[] = {'o','u','r'};
+char five[] = {'i','v','e'};
+char six[] = {'i','x'};
+char seven[] = {'e','v','e','n'};
+char eight[] = {'i','g','h','t'};
+char nine[] = {'i','n','e'};
+
+int main(void)
+{
+  FILE *file;
+
+  file = fopen( BIG, "rb");
+
+  if(file == NULL)
+  {
+    printf("Error opening file\n");
+    return 3;
+  }
+
+  fseek(file,0,SEEK_END);
+  long int file_size = ftell(file);
+  rewind(file);
+
+  size_t to_alloc = file_size / sizeof(char);
+  printf("read size: %ld bytes %ld bits %ld chars \n", file_size, file_size*8, to_alloc);
+  char *buffer = (char *)malloc(to_alloc);
+
+  if(buffer == NULL) {
+    perror("error allocating buffer");
+    fclose(file);
+    return 1;
+  }
+
+  fread(buffer, 1, to_alloc, file);
+
+  uint8_t first_digit_in_line = 11;
+  uint8_t last_digit_in_line  = 0;
+  size_t last_digit_in_line_idx = 0;
+  uint8_t last_digit_found_from_chars = 0;
+  size_t  last_digit_found_from_chars_idx = 0;
+
+  uint32_t sum = 0;
+
+  for(size_t i = 0; i < to_alloc; i++)
+  {
+
+    switch(buffer[i])
+    {
+      case 'o':{
+        if( (i+2 < to_alloc) && buffer[i+2] != '\n' && buffer[i+2] == 'e') {
+          if(buffer[i+1] == 'n'){
+            printf("found one at idx %lu\n", i);
+
+            if(first_digit_in_line == 11)
+            {
+              first_digit_in_line = 1+48;
+            }
+
+            last_digit_found_from_chars = 1+48;
+            last_digit_found_from_chars_idx = i;
+          }
+        }
+      }break;
+
+      case 't':{
+
+        if( (i+4 < to_alloc) && buffer[i+4] != '\n' && buffer[i+4] == 'e'){
+          //three
+          uint8_t found_three = 1;
+          for(size_t j = i+1; j < i+4; j++)
+          {
+            if(buffer[j] != three[j-(i+1)]){
+              found_three = 0;
+            }
+          }
+
+          if(found_three == 1){
+            printf("found three at idx %lu\n", i);
+            if(first_digit_in_line == 11)
+            {
+              first_digit_in_line = 3+48;
+            }
+            last_digit_found_from_chars = 3+48;
+            last_digit_found_from_chars_idx = i;
+          }
+
+        }
+
+        if( (i+2 < to_alloc) && buffer[i+2] != '\n' && buffer[i+2] == 'o'){
+
+          //printf("two condition met\n");
+          //two
+          if(buffer[i+1] == 'w'){
+
+            printf("found two at idx %lu\n", i);
+
+            if(first_digit_in_line == 11)
+            {
+              first_digit_in_line = 2+48;
+            }
+
+            last_digit_found_from_chars = 2+48;
+            last_digit_found_from_chars_idx = i;
+
+          }
+        }
+      }break;//t
+
+      case 'f':{
+        if( (i+3 < to_alloc) && buffer[i+3] != '\n'){
+
+          if(buffer[i+3] == 'e'){
+            //five
+            uint8_t found_five = 1;
+            for(size_t j = i+1; j < i+3; j++)
+            {
+              if(buffer[j] != five[j-(i+1)]){
+                found_five = 0;
+              }
+            }
+
+            if(found_five == 1){
+              printf("found five at idx %lu\n", i);
+              if(first_digit_in_line == 11)
+              {
+                first_digit_in_line = 5+48;
+              }
+              last_digit_found_from_chars = 5+48;
+              last_digit_found_from_chars_idx = i;
+            }
+
+
+          }else if(buffer[i+3] == 'r'){
+            //four
+            uint8_t found_four = 1;
+            for(size_t j = i+1; j < i+3; j++)
+            {
+
+              if(buffer[j] != four[j-(i+1)]){
+                found_four = 0;
+              }
+
+            }
+            if(found_four == 1){
+              printf("found four at idx %lu\n", i);
+              if(first_digit_in_line == 11)
+              {
+                first_digit_in_line = 4+48;
+              }
+              last_digit_found_from_chars = 4+48;
+              last_digit_found_from_chars_idx = i;
+            }
+          }
+
+        }
+      }break;//four or five
+
+      case 's':{
+        if( (i+4 < to_alloc) && buffer[i+4] != '\n' && buffer[i+4] == 'n' ){
+          //seven
+          uint8_t found_seven = 1;
+          for(size_t j = i+1; j < i+4/*edit this*/; j++)
+          {
+            if(buffer[j] != seven[j-(i+1)]){
+              found_seven = 0;
+            }
+          }
+
+          if(found_seven == 1){
+            printf("found seven at idx %lu\n", i);
+            if(first_digit_in_line == 11)
+            {
+              first_digit_in_line = 7+48;
+            }
+            last_digit_found_from_chars = 7+48;
+            last_digit_found_from_chars_idx = i;
+          }
+
+        }
+
+        if( (i+2 < to_alloc) && buffer[i+2] != '\n' && buffer[i+2] == 'x'){
+          //six
+          if(buffer[i+1] == 'i'){
+            printf("found six at idx %lu\n", i);
+
+            if(first_digit_in_line == 11)
+            {
+              first_digit_in_line = 6+48;
+            }
+            last_digit_found_from_chars = 6+48;
+            last_digit_found_from_chars_idx = i;
+
+          }
+        }
+      }break;//six or seven
+
+      case 'e':{
+        if( (i+4 < to_alloc) && buffer[i+4] != '\n' && buffer[i+4] == 't'){
+          //check for eight
+          uint8_t found_eight = 1;
+          for(size_t j = i+1; j < i+4/*edit this*/; j++)
+          {
+            if(buffer[j] != eight[j-(i+1)]){
+              found_eight = 0;
+            }
+          }
+
+          if(found_eight == 1){
+            printf("found eight at idx %lu\n", i);
+            if(first_digit_in_line == 11)
+            {
+              first_digit_in_line = 8+48;
+            }
+            last_digit_found_from_chars = 8+48;
+            last_digit_found_from_chars_idx = i;
+          }
+        }
+
+      }break;
+
+      case 'n':{
+        if( (i+3 < to_alloc) && buffer[i+3] != '\n' && buffer[i+3] == 'e'){
+
+          uint8_t found_nine = 1;
+          for(size_t j = i+1; j < i+3/*edit this*/; j++)
+          {
+            if(buffer[j] != nine[j-(i+1)]){
+              found_nine = 0;
+            }
+          }
+
+          if(found_nine == 1){
+            printf("found nine at idx %lu\n", i);
+            if(first_digit_in_line == 11)
+            {
+              first_digit_in_line = 9+48;
+            }
+            last_digit_found_from_chars = 9+48;
+            last_digit_found_from_chars_idx = i;
+          }
+
+        }
+
+      }break;
+
+    }//switch
+
+
+    if(buffer[i] >= 48 && buffer[i] <= 57){
+
+      if(first_digit_in_line == 11)
+      {
+        first_digit_in_line = buffer[i];
+      }
+
+      last_digit_in_line = buffer[i];
+      last_digit_in_line_idx = i;
+
+    }
+
+    if(buffer[i] == '\n')
+    {
+      //ops
+      uint8_t last = last_digit_found_from_chars;
+
+      if(last_digit_in_line_idx > last_digit_found_from_chars_idx){
+        last = last_digit_in_line;
+      }
+
+      uint8_t comb = ((first_digit_in_line-48)*10) + (last-48);
+      sum+=comb;
+      printf("%d %d\n", first_digit_in_line-48, last-48);
+      printf("comb %d\n", comb);
+      printf("sum %d\n", sum);
+      printf("reseting .. \n");
+      printf("-----------------\n");
+      first_digit_in_line = 11;
+      last_digit_in_line  = 0;
+      last_digit_found_from_chars  = 0;
+    }
+  }
+
+  fclose(file);
+  return 0;
+}
+</body>
