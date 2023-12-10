@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<title>AOC 2023 D2</title>
+<head>
+  <meta name="color-scheme" content="light dark"></meta>
+<style>
+  pre {
+     word-wrap: break-word;
+     white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<pre>
+/* =========================================================================
+   aoc_23_d3_p2.c - _m2sprite_ solution to Advent of Code 2023 Day 03 Part 2
+   ========================================================================= */
+
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stdint.h&gt;
+
+int turn_this_into_int(char c){
+  return c-48;
+}
+
+int is_digit_char(char *c){
+  return (*c &gt;= 48 && *c &lt;= 57);
+}
+
+
+void print_buffer(char *buffer)
+{
+  printf("%s", buffer);
+}
+
+size_t find_start_idx_of_number(char *buffer, size_t idx_to_search_from)
+{
+  while( is_digit_char( &buffer[idx_to_search_from-1]) && (idx_to_search_from != 0)){
+    --idx_to_search_from;
+  }
+
+  return idx_to_search_from;
+}
+
+
+void zero_fill(int array[], size_t size_of_array)
+{
+  for(size_t i = 0; i &lt; size_of_array; ++i){
+    array[i] = 0;
+  }
+}
+
+void check_idx_return_no(char *buffer, size_t idx, int *adj_counter, int *gear_comps, size_t *last_found_idx, size_t *error_s){
+  if(is_digit_char( &buffer[idx] ) )
+  {
+    size_t bidx = find_start_idx_of_number(buffer, idx);
+    int found_new = 0;
+
+    if(*last_found_idx != bidx || *last_found_idx == *error_s){
+      *last_found_idx = bidx;
+      *adj_counter+=1;
+      found_new = 1;
+    }
+
+    //printf("start idx at: %lu %c \n", bidx, buffer[bidx] );
+
+    int number = turn_this_into_int(buffer[bidx]);
+    ++bidx;
+
+    while(is_digit_char(&buffer[bidx]))
+    {
+      number*=10;
+      number+= turn_this_into_int(buffer[bidx]);
+      ++bidx;
+    }
+
+    if(found_new){
+      if(*adj_counter == 1){
+        gear_comps[0] = number;
+      }else if(*adj_counter == 2){
+        gear_comps[1] = number;
+      }
+    }
+
+  }
+
+}
+
+void print_array(int *array, size_t size)
+{
+  for(size_t i = 0; i &lt; size; i++)
+  {
+    if(array[i] != 0)
+    {
+      printf("%d, ",array[i]);
+    }
+  }
+  printf("\n");
+}
+
+void sum(int *array, size_t size)
+{
+  int sum = 0;
+  for(size_t i = 0; i &lt; size; i++)
+  {
+    if(array[i] != 0)
+    {
+      sum+= array[i];
+    }
+  }
+  printf("%d\n", sum);
+}
+
+
+
+int main(void)
+{
+  FILE *file;
+
+  file = fopen("BIG", "rb");
+
+  if(file == NULL)
+  {
+    printf("Error opening file\n");
+    return 3;
+  }
+
+  fseek(file,0,SEEK_END);
+  long int file_size = ftell(file);
+  rewind(file);
+
+  size_t to_alloc = file_size / sizeof(char);
+  printf("read size: %ld bytes %ld bits %ld chars \n", file_size, file_size*8, to_alloc);
+  char *buffer = (char *)malloc(to_alloc);
+
+  if(buffer == NULL) {
+    perror("error allocating buffer");
+    fclose(file);
+    return 1;
+  }
+
+  fread(buffer, 1, to_alloc, file);
+  fclose(file);
+  print_buffer(buffer);
+
+  uint8_t found_first_nl = 0;
+  size_t stride = 0;
+  int idx_list[to_alloc];
+
+  zero_fill(idx_list, to_alloc);
+
+
+  //set stride
+  while(!found_first_nl){
+    if(buffer[stride] == '\n' )
+    {
+      found_first_nl = 1;
+    }
+    stride++;
+  }
+
+  printf("stride: %lu\n", stride);
+  printf("to_alloc - stride: %lu\n", to_alloc - stride);
+
+  int gear_ratio_sum = 0;
+  size_t error_s = to_alloc+50;
+
+  for(size_t i = 0; i &lt; to_alloc; ++i){
+
+    if(buffer[i] != '.' && buffer[i] != '\n'){
+
+      if(buffer[i] == '*')
+      {
+
+        int gear_comps[2] = {0,0};
+        int adj_counter = 0;
+        int gear_ratio  = 0;
+
+        size_t last_found_idx = error_s;
+
+        printf("last_found_idx %zu\n", last_found_idx);
+
+        //ABOVE
+        if(i &gt; stride)
+        {
+          //means we have hit new line there is a line above us
+
+          if(i-stride-1 &gt;= 0) {
+            check_idx_return_no(buffer,
+                                i-stride-1,
+                                &adj_counter,
+                                gear_comps, &last_found_idx, &error_s);
+          }
+
+          check_idx_return_no(buffer, i-stride,  &adj_counter  , gear_comps, &last_found_idx, &error_s);
+          check_idx_return_no(buffer, i-stride+1, &adj_counter , gear_comps, &last_found_idx, &error_s);
+        }
+
+
+        //MIDDLE
+        if(i-1 &gt;= 0){
+          check_idx_return_no(buffer, i-1,  &adj_counter , gear_comps, &last_found_idx, &error_s);
+        }
+
+
+        if(i+1 &lt; to_alloc){
+          check_idx_return_no(buffer, i+1,  &adj_counter , gear_comps, &last_found_idx, &error_s);
+        }
+
+        //BELOW
+        //not on last_row
+        if(i &lt; (to_alloc - stride)){
+          check_idx_return_no(buffer, (i+stride)-1,  &adj_counter , gear_comps, &last_found_idx, &error_s);
+          check_idx_return_no(buffer, (i+stride),  &adj_counter , gear_comps, &last_found_idx, &error_s);
+          check_idx_return_no(buffer, (i+stride)+1,  &adj_counter , gear_comps, &last_found_idx, &error_s);
+        }
+
+        printf("%d\n", adj_counter);
+        if(adj_counter == 2){
+          printf("found gear\n");
+          gear_ratio = gear_comps[0]*gear_comps[1];
+          printf("%d %d\n", gear_comps[0], gear_comps[1]);
+          printf("%d\n", gear_ratio);
+          gear_ratio_sum += gear_ratio;
+        }
+
+      }
+
+    }
+  }
+
+  //print_array(idx_list,to_alloc);
+  //sum(idx_list, to_alloc);
+  printf("%d\n", gear_ratio_sum);
+
+  free(buffer);
+  return 0;
+}
+
+</pre>
+</body>
+</html>
