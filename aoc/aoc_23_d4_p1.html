@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<title>AOC 2023 D2</title>
+<head>
+  <meta name="color-scheme" content="light dark"></meta>
+<style>
+  pre {
+     word-wrap: break-word;
+     white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<pre>
+/* =========================================================================
+   aoc_23_d4_p1.c - _m2sprite_ solution to Advent of Code 2023 Day 04 Part 1
+   ========================================================================= */
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stdint.h&gt;
+
+void print_buffer(char *buffer)
+{
+  printf("%s", buffer);
+}
+
+typedef struct {
+  size_t size;
+  char*  buffer;
+}Input;
+
+Input input_alloc(const char *filename)
+{
+  Input input;
+  FILE *file;
+
+  file = fopen(filename, "rb");
+
+  if(file == NULL)
+  {
+    printf("Error opening file\n");
+  }
+
+  fseek(file,0,SEEK_END);
+  long int file_size = ftell(file);
+  rewind(file);
+
+  size_t to_alloc = file_size / sizeof(char);
+  printf("read size: %ld bytes %ld bits %ld chars \n", file_size, file_size*8, to_alloc);
+
+  input.buffer = (char *)malloc(to_alloc);
+
+  if(input.buffer == NULL) {
+    perror("error allocating buffer");
+    fclose(file);
+  }
+  input.size = to_alloc;
+
+  fread(input.buffer, 1, to_alloc, file);
+  fclose(file);
+
+  print_buffer(input.buffer);
+  return input;
+}
+
+typedef struct{
+  uint8_t *list;
+  size_t   size;
+} int_vector;
+
+
+int_vector int_vector_alloc(size_t size)
+{
+  int_vector vector;
+  printf("allocating vector first_el_size = %zu\n", sizeof(vector.list[0]));
+  vector.list = malloc(sizeof(vector.list[0])*size);
+  vector.size = size;
+  return vector;
+}
+
+void int_vector_enlarge(int_vector *v, size_t size)
+{
+  v-&gt;list = realloc(v-&gt;list, sizeof(v-&gt;list[0]) * size);
+  v-&gt;size = size;
+}
+
+void print_int_vector(int_vector v){
+
+  for(size_t i =0; i &lt; v.size; ++i){
+    printf("%d", v.list[i]);
+  }
+
+  printf("\n");
+}
+
+void fill_int_vector_zero(int_vector v){
+  for(size_t i =0; i &lt; v.size ; ++i){
+    v.list[i] = 0;
+  }
+}
+
+int is_digit_char(char *c){
+  return (*c &gt;= 48 && *c &lt;= 57);
+}
+
+size_t turn_this_into_size_t(char c){
+  return c-48;
+}
+
+int main(void){
+
+  Input input = input_alloc("BIG");
+
+  size_t amt_of_chars = 0;
+
+  uint8_t counting_winning = 0;
+  uint8_t counting_our = 0;
+
+  int_vector winning_v = int_vector_alloc(100);
+
+  fill_int_vector_zero(winning_v);
+
+
+  int line_score = 0;
+  int total_score = 0;
+
+  for(size_t i = 0; i &lt; input.size; ++i){
+    //printf("%c", input.buffer[i]);
+    ++amt_of_chars;
+
+    if(input.buffer[i] == ':'){
+      counting_winning = 1;
+      fill_int_vector_zero(winning_v);
+    }
+
+    if(counting_winning == 1){
+      //start appending chars to first vec
+
+      if(is_digit_char(&input.buffer[i])){
+
+        size_t number = turn_this_into_size_t(input.buffer[i]);
+        ++i;
+
+        while(is_digit_char(&input.buffer[i]))
+        {
+          number*=10;
+          number += turn_this_into_size_t(input.buffer[i]);
+          ++i;
+        }
+
+        if(winning_v.size &lt;= number){
+          printf("realloced winning_v from %zu to %zu \n", winning_v.size, number+1);
+          int_vector_enlarge(&winning_v,number+1);
+        }
+
+        winning_v.list[number] = 1;
+
+        //printf("%zu ",number);
+      }
+
+    }
+
+    if(input.buffer[i] == '|')
+    {
+      counting_winning = 0;
+      counting_our = 1;
+    }
+
+    if(counting_our == 1){
+
+      if(is_digit_char(&input.buffer[i])){
+
+        size_t number = turn_this_into_size_t(input.buffer[i]);
+        ++i;
+
+        while(is_digit_char(&input.buffer[i]))
+        {
+          number*=10;
+          number += turn_this_into_size_t(input.buffer[i]);
+          ++i;
+        }
+
+        if(winning_v.list[number] == 1){
+          printf("%zu is a winning number\n",number);
+
+          if(line_score == 0){
+            line_score = 1;
+          }else{
+            line_score *= 2;
+          }
+
+        }
+
+      }
+
+    }
+
+    if(input.buffer[i] == '\n')
+    {
+      printf("linescore: %d\n", line_score);
+      total_score += line_score;
+      line_score = 0;
+      fill_int_vector_zero(winning_v);
+      counting_winning = 0;
+      counting_our = 0;
+    }
+
+
+  }
+  printf("total score %d\n", total_score);
+
+
+  free(winning_v.list);
+  free(input.buffer);
+  return (0);
+}
+</pre>
+</body>
+</html>
