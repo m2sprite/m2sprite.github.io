@@ -1,0 +1,320 @@
+<html>
+<title>AOC 2023 D4</title>
+<head>
+  <meta name="color-scheme" content="light dark"></meta>
+<style>
+  pre {
+     word-wrap: break-word;
+     white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<pre>
+/* =========================================================================
+   aoc_23_d4_p2.c - _m2sprite_ solution to Advent of Code 2023 Day 04 Part 2
+   ========================================================================= */
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stdint.h&gt;
+#include &lt;assert.h&gt;
+
+void print_buffer(char *buffer)
+{
+  printf("%s", buffer);
+}
+
+typedef struct {
+  size_t size;
+  char*  buffer;
+}Input;
+
+Input input_alloc(const char *filename)
+{
+  Input input;
+  FILE *file;
+
+  file = fopen(filename, "rb");
+
+  if(file == NULL)
+  {
+    printf("Error opening file\n");
+  }
+
+  fseek(file,0,SEEK_END);
+  long int file_size = ftell(file);
+  rewind(file);
+
+  size_t to_alloc = file_size / sizeof(char);
+  printf("read size: %ld bytes %ld bits %ld chars \n", file_size, file_size*8, to_alloc);
+
+  input.buffer = (char *)malloc(to_alloc);
+
+  if(input.buffer == NULL) {
+    perror("error allocating buffer");
+    fclose(file);
+  }
+  input.size = to_alloc;
+
+  fread(input.buffer, 1, to_alloc, file);
+  fclose(file);
+
+  print_buffer(input.buffer);
+  return input;
+}
+
+typedef struct{
+  uint8_t *list;
+  size_t   size;
+} int_vector;
+
+typedef struct{
+  uint32_t *list;
+  size_t   size;
+} int32_vector;
+
+
+int_vector int_vector_alloc(size_t size)
+{
+  int_vector vector;
+  printf("allocating vector first_el_size = %zu\n", sizeof(vector.list[0]));
+  vector.list = malloc(sizeof(uint8_t) * size);
+  vector.size = size;
+  return vector;
+}
+
+int32_vector int32_vector_alloc(size_t size)
+{
+  int32_vector vector;
+  printf("allocating vector first_el_size = %zu\n", sizeof(vector.list[0]));
+  vector.list = malloc(sizeof(uint32_t) * size);
+  vector.size = size;
+  return vector;
+}
+
+void int_vector_enlarge(int_vector *v, size_t size)
+{
+  v-&gt;list = realloc(v-&gt;list, sizeof(uint8_t) * size);
+  v-&gt;size = size;
+}
+
+void int32_vector_enlarge(int32_vector *v, size_t size)
+{
+  v-&gt;list = realloc(v-&gt;list, sizeof(uint32_t) * size);
+  v-&gt;size = size;
+}
+
+void print_int_vector(int_vector v){
+  for(size_t i =0; i &lt; v.size; ++i){
+    printf("%d", v.list[i]);
+  }
+  printf("\n");
+}
+
+void print_int32_vector(int32_vector v){
+
+  for(size_t i =0; i &lt; v.size; ++i){
+    printf("%d", v.list[i]);
+  }
+
+  printf("\n");
+}
+
+void fill_int_vector_zero(int_vector v){
+  for(size_t i =0; i &lt; v.size ; ++i){
+    v.list[i] = 0;
+  }
+}
+
+void fill_int32_vector_zero(int32_vector v){
+  for(size_t i =0; i &lt; v.size ; ++i){
+    v.list[i] = 0;
+  }
+}
+
+int is_digit_char(char *c){
+  return (*c &gt;= 48 && *c &lt;= 57);
+}
+
+size_t turn_this_into_size_t(char c){
+  return c-48;
+}
+
+
+void int32_vector_copy(int32_vector from, int32_vector to)
+{
+    assert(from.size == to.size);
+    for (size_t i = 0; i &lt; from.size; ++i) {
+      to.list[i] = from.list[i];
+    }
+}
+
+
+int main(void){
+
+  Input input = input_alloc("BIG");
+
+  size_t  card_number       = 0;
+  size_t  back_iterate_start = 0;
+
+  uint8_t found_card_number = 0;
+  uint8_t counting_winning  = 0;
+  uint8_t counting_our      = 0;
+
+  int_vector winning_v = int_vector_alloc(100);
+  int32_vector full_book = int32_vector_alloc(100);
+
+  fill_int_vector_zero(winning_v);
+  fill_int32_vector_zero(full_book);
+
+
+  int line_score = 0;
+  int total_score = 0;
+
+  for(size_t i = 0; i &lt; input.size; ++i){
+
+    //find game number
+    if(is_digit_char(&input.buffer[i]) && found_card_number == 0){
+      found_card_number = 1;
+      card_number = turn_this_into_size_t(input.buffer[i]);
+      ++i;
+      while(is_digit_char(&input.buffer[i]))
+      {
+        card_number *= 10;
+        card_number += turn_this_into_size_t(input.buffer[i]);
+        ++i;
+      }
+    }
+
+    if(input.buffer[i] == ':'){
+      counting_winning = 1;
+      fill_int_vector_zero(winning_v);
+    }
+
+    if(counting_winning == 1){
+      //start appending chars to first vec
+
+      if(is_digit_char(&input.buffer[i])){
+
+        size_t number = turn_this_into_size_t(input.buffer[i]);
+        ++i;
+
+        while(is_digit_char(&input.buffer[i]))
+        {
+          number*=10;
+          number += turn_this_into_size_t(input.buffer[i]);
+          ++i;
+        }
+
+        if(winning_v.size &lt;= number){
+          printf("realloced winning_v from %zu to %zu \n", winning_v.size, number+1);
+          int_vector_enlarge(&winning_v,number+1);
+        }
+
+        winning_v.list[number] = 1;
+
+        //printf("%zu ",number);
+      }
+
+    }
+
+    if(input.buffer[i] == '|')
+    {
+      counting_winning = 0;
+      counting_our = 1;
+    }
+
+    if(counting_our == 1){
+      if(is_digit_char(&input.buffer[i])){
+
+        size_t number = turn_this_into_size_t(input.buffer[i]);
+        ++i;
+
+        while(is_digit_char(&input.buffer[i]))
+        {
+          number*=10;
+          number += turn_this_into_size_t(input.buffer[i]);
+          ++i;
+        }
+
+        if(winning_v.list[number] == 1){
+          printf("%zu is a winning number\n",number);
+          if(line_score == 0){
+            line_score = 1;
+          }else{
+            line_score += 1;
+          }
+        }
+
+      }
+    }
+
+    if(input.buffer[i] == '\n')
+    {
+      printf("Game number: %zu - Linescore: %d\n",card_number,line_score);
+
+      if(full_book.size &lt;= card_number){
+        printf("trying to realloc from %zu to %zu \n", full_book.size, card_number*2);
+        int32_vector_enlarge(&full_book, card_number*2);
+      }
+
+      full_book.list[card_number] = line_score;
+
+      back_iterate_start = line_score+card_number;
+
+      card_number = 0;
+      line_score = 0;
+      fill_int_vector_zero(winning_v);
+      found_card_number = 0;
+      counting_winning  = 0;
+      counting_our      = 0;
+
+    }
+  }//filled book
+
+  printf("%zu full_book_size\n", full_book.size);
+
+  for(size_t j = back_iterate_start; j &gt; 0; j--){
+
+    printf("Game %zu ", j);
+
+    //adding current card
+    total_score+=1;
+
+
+    int lut_score = full_book.list[j];
+    printf("initial lut score: %d ", lut_score);
+
+
+    if(lut_score &gt; 0){
+      printf("pos_lut_score");
+
+      for(size_t k = (j+1); k &lt;= j+lut_score; k++){
+
+        printf(" [%zu] ", k);
+
+        if(full_book.list[k] &gt; 0){
+          printf("adding %zu's score %d  to %zu", k, full_book.list[k], j);
+          full_book.list[j]+=full_book.list[k];
+        }
+
+      }
+
+      lut_score = full_book.list[j];
+      //adding cards cum score
+      total_score+=lut_score;
+
+    }
+    printf("\n");
+  }
+
+  printf("total %d\n",total_score);
+
+  free(winning_v.list);
+  free(full_book.list);
+  free(input.buffer);
+  return (0);
+}
+</pre>
+</body>
+</html>
