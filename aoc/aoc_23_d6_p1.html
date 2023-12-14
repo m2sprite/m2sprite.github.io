@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<title>AOC 2023 D6</title>
+<head>
+  <meta name="color-scheme" content="light dark"></meta>
+<style>
+  pre {
+     word-wrap: break-word;
+     white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<pre>
+/* =========================================================================
+   aoc_23_d6_p1.c - _m2sprite_ solution to Advent of Code 2023 Day 06 Part 1
+   ========================================================================= */
+#define VEC_IMPLEMENTATION
+#include "vec.h"
+#include &lt;stdio.h&gt;
+
+typedef struct {
+  size_t size;
+  char*  buffer;
+}Input;
+
+size_t char_sizet(char c){
+  return c-48;
+}
+
+int32_t char_int(char c){
+  return c-48;
+}
+
+uint8_t is_digit_char(char c){
+  return (c &gt;= 48 && c &lt;= 57);
+}
+
+Input input_alloc(const char *filename)
+{
+  Input input;
+  FILE *file;
+
+  file = fopen(filename, "rb");
+
+  if(file == NULL)
+  {
+    printf("Error opening file\n");
+  }
+
+  fseek(file,0,SEEK_END);
+  long int file_size = ftell(file);
+  rewind(file);
+
+  size_t to_alloc = file_size / sizeof(char);
+  printf("read size: %ld bytes %ld bits %ld chars \n", file_size, file_size*8, to_alloc);
+
+  input.buffer = (char *)malloc(to_alloc);
+
+  if(input.buffer == NULL) {
+    perror("error allocating buffer");
+    fclose(file);
+  }
+  input.size = to_alloc;
+
+  fread(input.buffer, 1, to_alloc, file);
+  fclose(file);
+
+  return input;
+}
+
+int64_vec numbers_from_to(char* buffer, size_t from, size_t to){
+
+  uint8_t found_first_no = 0;
+
+  int64_vec vector = int64_vec_alloc(to-from);
+
+  size_t vector_iterator = 0;
+
+  for(size_t i = from; i &lt;= to; ++i){
+
+    if(found_first_no == 0 && is_digit_char(buffer[i]) ){
+      found_first_no = 1;
+    }
+
+    if(found_first_no) {
+
+      if(is_digit_char(buffer[i])){
+
+        int64_t number_to_push = char_int(buffer[i]);
+        while(is_digit_char(buffer[i]))
+        {
+          ++i;
+          if(is_digit_char(buffer[i])){
+            number_to_push*=10;
+            number_to_push+= char_int(buffer[i]);
+          }
+        }
+
+
+        if(vector_iterator+1 &gt; vector.size){
+          int64_vec_resize(&vector,vector_iterator+1);
+        }
+
+        vector.elements[vector_iterator] = number_to_push;
+        ++vector_iterator;
+      }
+    }
+  }
+  int64_vec_resize(&vector,vector_iterator);
+  return vector;
+}
+
+int main(void){
+  Input inpt = input_alloc("BIG");
+
+  int64_vec time;
+  int64_vec distance;
+  int64_vec ways_to_beat = int64_vec_alloc(4);
+  int64_vec_fill_zero(ways_to_beat);
+
+
+  size_t line_counter=0;
+  size_t last_nl_idx;
+
+  for(size_t char_i = 0 ; char_i &lt; inpt.size; ++char_i){
+    if(inpt.buffer[char_i] == '\n'){
+      if(line_counter == 0){
+        time = numbers_from_to(inpt.buffer, 0, char_i);
+      }else if(line_counter == 1){
+        distance = numbers_from_to(inpt.buffer,last_nl_idx+1, char_i);
+      }
+      line_counter++;
+      last_nl_idx = char_i;
+    }
+  }
+  //int64_vec_print(time);
+  //int64_vec_print(distance);
+
+  //if i charge me boat for 6 secs it will travel at
+  for(size_t i = 0; i &lt; time.size; i++){
+    int64_t distance_to_beat = distance.elements[i];
+    int64_t time_of_race = time.elements[i];
+    for(int64_t time_iter = 0; time_iter &lt; time_of_race+1; ++time_iter){
+     int64_t time_remaining = time_of_race - time_iter;
+     int64_t travelled      = time_iter * time_remaining;
+
+     if(travelled &gt; distance_to_beat){
+       //printf("BEAT\n");
+       ways_to_beat.elements[i] += 1;
+     }
+
+    }
+  }
+
+  int64_vec_print(ways_to_beat);
+  float total_prod = 1;
+  for(size_t prod_i = 0; prod_i &lt; ways_to_beat.size; ++prod_i){
+    //printf(" %lld ", ways_to_beat.elements[prod_i]);
+    total_prod = total_prod*ways_to_beat.elements[prod_i];
+  }
+
+  printf("%f total prod\n", total_prod);
+
+  return (0);
+}
+</pre>
+</body>
+</html>
