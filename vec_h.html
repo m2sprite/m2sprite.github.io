@@ -165,7 +165,7 @@ double_vec double_vec_alloc(size_t size){
   double_vec return_this;
   return_this.size = size;
   return_this.held = 0;
-  return_this.elements = malloc(sizeof(*return_this.elements)*size);
+  return_this.elements = VEC_MALLOC(sizeof(*return_this.elements)*size);
   VEC_ASSERT(return_this.elements != NULL);
   return return_this;
 }
@@ -174,7 +174,7 @@ float_vec float_vec_alloc(size_t size){
   float_vec return_this;
   return_this.size = size;
   return_this.held = 0;
-  return_this.elements = malloc(sizeof(*return_this.elements)*size);
+  return_this.elements = VEC_MALLOC(sizeof(*return_this.elements)*size);
   VEC_ASSERT(return_this.elements != NULL);
   return return_this;
 }
@@ -183,7 +183,7 @@ int8_vec int8_vec_alloc(size_t size){
   int8_vec return_this;
   return_this.size = size;
   return_this.held = 0;
-  return_this.elements = malloc(sizeof(*return_this.elements)*size);
+  return_this.elements = VEC_MALLOC(sizeof(*return_this.elements)*size);
   VEC_ASSERT(return_this.elements != NULL);
   return return_this;
 }
@@ -192,7 +192,7 @@ int16_vec int16_vec_alloc(size_t size){
   int16_vec return_this;
   return_this.size = size;
   return_this.held = 0;
-  return_this.elements = malloc(sizeof(*return_this.elements)*size);
+  return_this.elements = VEC_MALLOC(sizeof(*return_this.elements)*size);
   VEC_ASSERT(return_this.elements != NULL);
   return return_this;
 }
@@ -201,7 +201,7 @@ int32_vec int32_vec_alloc(size_t size){
   int32_vec return_this;
   return_this.size = size;
   return_this.held = 0;
-  return_this.elements = malloc(sizeof(*return_this.elements)*size);
+  return_this.elements = VEC_MALLOC(sizeof(*return_this.elements)*size);
   VEC_ASSERT(return_this.elements != NULL);
   return return_this;
 }
@@ -210,7 +210,7 @@ int64_vec int64_vec_alloc(size_t size){
   int64_vec return_this;
   return_this.size = size;
   return_this.held = 0;
-  return_this.elements = malloc(sizeof(*return_this.elements)*size);
+  return_this.elements = VEC_MALLOC(sizeof(*return_this.elements)*size);
   VEC_ASSERT(return_this.elements != NULL);
   return return_this;
 }
@@ -219,7 +219,7 @@ uint8_vec uint8_vec_alloc(size_t size){
   uint8_vec return_this;
   return_this.size = size;
   return_this.held = 0;
-  return_this.elements = malloc(sizeof(*return_this.elements)*size);
+  return_this.elements = VEC_MALLOC(sizeof(*return_this.elements)*size);
   VEC_ASSERT(return_this.elements != NULL);
   return return_this;
 }
@@ -228,7 +228,7 @@ uint16_vec uint16_vec_alloc(size_t size){
   uint16_vec return_this;
   return_this.size = size;
   return_this.held = 0;
-  return_this.elements = malloc(sizeof(*return_this.elements)*size);
+  return_this.elements = VEC_MALLOC(sizeof(*return_this.elements)*size);
   VEC_ASSERT(return_this.elements != NULL);
   return return_this;
 }
@@ -237,7 +237,7 @@ uint32_vec uint32_vec_alloc(size_t size){
   uint32_vec return_this;
   return_this.size = size;
   return_this.held = 0;
-  return_this.elements = malloc(sizeof(*return_this.elements)*size);
+  return_this.elements = VEC_MALLOC(sizeof(*return_this.elements)*size);
   VEC_ASSERT(return_this.elements != NULL);
 
   return return_this;
@@ -247,7 +247,7 @@ uint64_vec uint64_vec_alloc(size_t size){
   uint64_vec return_this;
   return_this.size = size;
   return_this.held = 0;
-  return_this.elements = malloc(sizeof(*return_this.elements)*size);
+  return_this.elements = VEC_MALLOC(sizeof(*return_this.elements)*size);
   VEC_ASSERT(return_this.elements != NULL);
   return return_this;
 }
