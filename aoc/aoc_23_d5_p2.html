@@ -1,0 +1,247 @@
+<html>
+<title>AOC 2023 D5</title>
+<head>
+  <meta name="color-scheme" content="light dark"></meta>
+<style>
+  pre {
+     word-wrap: break-word;
+     white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<pre>
+/* =========================================================================
+   aoc_23_d5_p2.c - _m2sprite_ solution to Advent of Code 2023 Day 05 Part 2
+   ========================================================================= */
+#define VEC_IMPLEMENTATION
+#include "vec.h"
+#define INPT_IMPLEMENTATION
+#include "inpt.h"
+
+//#define DEBUG
+
+void log_string(const char *string){
+  printf("%s\n", string);
+}
+
+void log_int64(int64_t value){
+  printf(" %" PRId64 " ", value);
+}
+
+void log_uint64(uint64_t value){
+  printf(" %" PRIu64 " ", value);
+}
+
+int8_t is_digit_char(char c){
+  return (c&gt;47 && c&lt;58);
+}
+
+int64_t char_to_i64(char c){
+  return (int64_t)(c - 48);
+}
+
+int64_vec numbers_from_to(char *buffer,size_t from, size_t to){
+  int64_vec warm = int64_vec_alloc(1);
+  for(size_t i = from; i &lt;= to; ++i){
+
+    if(is_digit_char(buffer[i])){
+      int64_t found_number = char_to_i64(buffer[i]);
+      ++i;
+      while(is_digit_char(buffer[i])){
+        found_number = found_number *10;
+        found_number += char_to_i64(buffer[i]);
+        ++i;
+      }
+      int64_vec_push_times_2_realloc(&warm,found_number);
+    }
+  }
+
+  if(warm.held == 0){
+    printf("found no numbers on line\n");
+  }
+  return warm;
+}
+
+typedef struct {
+  int64_t high;
+  int64_t low;
+  int64_t delta;
+}Range;
+
+typedef struct {
+  Range *elements;
+  size_t amt;
+  size_t cap;
+}Map_vec;
+
+Map_vec map_vec_alloc(size_t cap){
+  Map_vec vec;
+  vec.amt = 0;
+  vec.elements = malloc(sizeof(Range)* cap);
+  VEC_ASSERT(vec.elements != NULL);
+  vec.cap = cap;
+  return vec;
+}
+
+int64_t min(int64_t a, int64_t b){
+  if(a &lt; b){
+#ifdef DEBUG
+    printf("min returning a\n");
+#endif
+    return a;
+  }else{
+#ifdef DEBUG
+    printf("min returning b\n");
+#endif
+    return b;
+  }
+}
+
+int64_t max(int64_t a, int64_t b){
+  if(a &gt; b){
+#ifdef DEBUG
+    printf("max returning a\n");
+#endif
+    return a;
+  }else{
+#ifdef DEBUG
+    printf("max returning b\n");
+#endif
+    return b;
+  }
+}
+
+
+int main(void){
+  Input inpt = input_alloc("BIG");
+
+  size_t last_nl_idx = 0;
+  size_t line_ctr = 0;
+  int64_vec first_line_vec;
+  int map_ctr = -1;
+
+  Map_vec map_arr[7] = {0};
+
+  for(size_t i = 0; i &lt; 7; ++i){
+    map_arr[i] = map_vec_alloc(3);
+  }
+
+  for(size_t char_i = 0; char_i &lt; inpt.size; ++char_i){
+    if(inpt.buffer[char_i] == '\n'){
+      if( (last_nl_idx!= 0) && (inpt.buffer[last_nl_idx+1] == '\n')){
+        ++map_ctr;
+      }
+      if(line_ctr == 0){
+        first_line_vec = numbers_from_to(inpt.buffer,last_nl_idx, char_i-1);
+        int64_vec_print(first_line_vec);
+      }else if(is_digit_char(inpt.buffer[last_nl_idx+1])){
+        int64_vec map_line_vec = numbers_from_to(inpt.buffer,last_nl_idx, char_i-1);
+        int64_t delta = map_line_vec.elements[0] - map_line_vec.elements[1];
+        int64_t low   = map_line_vec.elements[1];
+        int64_t high  = low+map_line_vec.elements[2]-1;
+        size_t amt = map_arr[map_ctr].amt;
+        if(map_arr[map_ctr].cap &lt; amt+1){
+          map_arr[map_ctr].elements = realloc(map_arr[map_ctr].elements, sizeof(Range)*(amt+1));
+          //printf("realloc\n");
+          map_arr[map_ctr].cap+=1;
+        }
+        map_arr[map_ctr].elements[amt].high  = high;
+        map_arr[map_ctr].elements[amt].low   = low;
+        map_arr[map_ctr].elements[amt].delta = delta;
+        map_arr[map_ctr].amt+=1;
+      }
+      last_nl_idx = char_i;
+      ++line_ctr;
+    }
+  }
+
+
+  int64_vec new_ranges = int64_vec_alloc(first_line_vec.held);
+
+  for(size_t i = 0; i &lt; first_line_vec.held; i+=2){
+    new_ranges.elements[i] = (first_line_vec.elements[i]);
+    new_ranges.elements[i+1] = (first_line_vec.elements[i] + first_line_vec.elements[i+1]) - 1;
+    new_ranges.held+=2;
+    printf("\n");
+  }
+
+
+
+
+  int64_t min_val = new_ranges.elements[0];
+  //for each map section
+  for(size_t i = 0; i &lt; 7; ++i){
+
+    //for each src and new srcs
+    int64_vec ranges_found = int64_vec_alloc(1);
+
+    for(size_t j = 0; j &lt; new_ranges.held; j+=2){
+      uint8_t found_intersection = 0;
+
+      //for each map in map section test to find intersection
+      for(size_t k = 0; k &lt; map_arr[i].amt; ++k){
+        int64_t src_low = new_ranges.elements[j];
+        int64_t src_high = new_ranges.elements[j+1];
+        int64_t map_low = map_arr[i].elements[k].low;
+        int64_t map_high = map_arr[i].elements[k].high;
+        int64_t max_of_lows =max(src_low,map_low);
+        int64_t min_of_highs =min(src_high, map_high);
+
+        if(max_of_lows &lt; min_of_highs){
+          int64_t delta = map_arr[i].elements[k].delta;
+          printf("found_intersection once found append new range to new_ranges and compute next path for it\n");
+
+          int64_vec_push_times_2_realloc(&ranges_found,max_of_lows+delta);
+          int64_vec_push_times_2_realloc(&ranges_found,min_of_highs+delta);
+          if(src_low &lt; map_low){
+            int64_vec_push_times_2_realloc(&ranges_found,map_low);
+            int64_vec_push_times_2_realloc(&ranges_found,max_of_lows);
+          }
+          if(src_high &gt; min_of_highs){
+            int64_vec_push_times_2_realloc(&ranges_found,min_of_highs);
+            int64_vec_push_times_2_realloc(&ranges_found,src_high);
+          }
+          found_intersection = 1;
+          break;
+        }
+      }
+
+      if(!found_intersection){
+        int64_vec_push_times_2_realloc(&ranges_found,new_ranges.elements[j]);
+        int64_vec_push_times_2_realloc(&ranges_found,new_ranges.elements[j+1]);
+      }
+
+    }
+
+    int64_vec_fill_zero(&new_ranges);
+
+    for(size_t push_i = 0; push_i &lt; ranges_found.held; ++push_i){
+      int64_vec_push_times_2_realloc(&new_ranges,ranges_found.elements[push_i]);
+    }
+
+    printf("__________\n");
+    int64_vec_print(new_ranges);
+
+    if(i == 6){
+      for(size_t find_low_i = 0; find_low_i &lt; new_ranges.held; ++find_low_i){
+        if(new_ranges.elements[find_low_i] &lt; min_val){
+          min_val = new_ranges.elements[find_low_i];
+        }
+      }
+    }
+
+    free(ranges_found.elements);
+    ranges_found.size=0;
+    ranges_found.held=0;
+  }
+  printf("MIN VAL: ");
+  log_int64(min_val);
+  printf("\n");
+
+
+ return (0);
+}
+</pre>
+</body>
+</html>
