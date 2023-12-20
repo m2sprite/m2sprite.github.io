@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<title>AOC 2023 D6</title>
+<head>
+  <meta name="color-scheme" content="light dark"></meta>
+<style>
+  pre {
+     word-wrap: break-word;
+     white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<pre>
+/* =========================================================================
+   aoc_23_d6_p2.c - _m2sprite_ solution to Advent of Code 2023 Day 06 Part 2
+   ========================================================================= */
+#define VEC_IMPLEMENTATION
+#include "vec.h"
+#define INPT_IMPLEMENTATION
+#include "inpt.h"
+//#define PART_1
+
+void log_string(const char *string){
+  printf("%s\n", string);
+}
+
+void log_int64(int64_t value){
+  printf(" %" PRId64 " ", value);
+}
+
+void log_uint64(uint64_t value){
+  printf(" %" PRIu64 " ", value);
+}
+
+int8_t is_digit_char(char c){
+  return (c&gt;47 && c&lt;58);
+}
+
+int64_t char_to_i64(char c){
+  return (int64_t)(c - 48);
+}
+
+int64_t int64_vec_cum_prod(int64_vec *v){
+  VEC_ASSERT(v-&gt;held!=0);
+  int64_t prod = v-&gt;elements[0];
+  for(size_t i = 1; i &lt; v-&gt;held; ++i){
+    prod = prod*v-&gt;elements[i];
+  }
+  return prod;
+}
+
+int64_t big_number_from_vec(int64_vec *v){
+  VEC_ASSERT( v-&gt;held != 0 );
+
+  int64_t big_n = v-&gt;elements[0];
+
+  for(size_t i = 1; i &lt; v-&gt;held; ++i){
+    big_n = big_n*10;
+    big_n += v-&gt;elements[i];
+  }
+
+  return big_n;
+}
+
+
+int main(void){
+  Input inpt = input_alloc("BIG");
+  printf("%s", inpt.buffer);
+
+  int64_vec time     = int64_vec_alloc(4);
+  int64_vec distance = int64_vec_alloc(4);
+  int64_vec *vec_arr[2] = {&time, &distance};
+  int vec_idx = 0;
+
+//get shit
+  for(size_t char_i = 0; char_i &lt; inpt.size; ++char_i){
+    if(is_digit_char(inpt.buffer[char_i])){
+      int64_t current_number = char_to_i64(inpt.buffer[char_i]);
+
+#ifdef PART_1
+      ++char_i;
+      while(is_digit_char(inpt.buffer[char_i])){
+        current_number = current_number*10;
+        current_number += char_to_i64(inpt.buffer[char_i]);
+        ++char_i;
+      }
+#endif
+      int64_vec_push_times_2_realloc(vec_arr[vec_idx],current_number);
+    }
+
+    if(inpt.buffer[char_i] == '\n'){
+      ++vec_idx;
+    }
+  }
+
+  int64_t max_time = big_number_from_vec(&time);
+  int64_t to_beat = big_number_from_vec(&distance);
+  int64_t ways_to_beat = 0;
+
+  for(int64_t j = 0; j &lt; max_time+1; ++j){
+    int64_t time_left = max_time - j;
+    int64_t travelled = j*time_left;
+
+    if(travelled &gt; to_beat){
+      ++ways_to_beat;
+    }
+  }
+
+  log_int64(ways_to_beat);
+
+#ifdef PART_1
+  int64_vec prod = int64_vec_alloc(time.held);
+  int64_vec_fill_zero(&prod);
+  prod.held = time.held;
+
+  for(size_t i = 0; i &lt; time.held; ++i){
+
+    int64_t max_time = time.elements[i];
+    int64_t to_beat = distance.elements[i];
+
+    for(int64_t j = 0; j &lt; max_time+1; ++j){
+      int64_t time_left = max_time - j;
+      int64_t travelled = j*time_left;
+
+      if(travelled &gt; to_beat){
+        ++prod.elements[i];
+      }
+    }
+
+  }
+  int64_t cum_prod = int64_vec_cum_prod(&prod);
+  log_int64(cum_prod);
+#endif
+
+  return (0);
+}
+</pre>
+</body>
+</html>
