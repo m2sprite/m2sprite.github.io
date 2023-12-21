@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html>
+<title>AOC 2023 D7</title>
+<head>
+  <meta name="color-scheme" content="light dark"></meta>
+<style>
+  pre {
+     word-wrap: break-word;
+     white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<pre>
+/* =========================================================================
+   aoc_23_d7_p2.c - _m2sprite_ solution to Advent of Code 2023 Day 07 Part 2
+   ========================================================================= */
+#define VEC_IMPLEMENTATION
+#include "vec.h"
+#define INPT_IMPLEMENTATION
+#include "inpt.h"
+
+void log_string(const char *string){
+  printf("%s", string);
+}
+
+void log_int64(int64_t value){
+  printf(" %" PRId64 " ", value);
+}
+
+void log_uint64(uint64_t value){
+  printf(" %" PRIu64 " ", value);
+}
+
+void log_uint8(uint8_t value){
+  printf(" %" PRIu8 " ", value);
+}
+
+int8_t is_digit_char(char c){
+  return (c&gt;47 && c&lt;58);
+}
+
+int64_t char_to_i64(char c){
+  return (int64_t)(c - 48);
+}
+
+
+//four of a kind
+//full house
+//three of a kind
+
+int abs(int value){
+  if(value &lt; 0){
+    return  -value;
+  }else{
+    return value;
+  }
+}
+
+
+int64_t power_of_ten(size_t idx){
+  int power = abs( ((int)idx)-4);
+  //printf("power %d %zu ", power,idx);
+
+  if(power == 0){
+    //printf(" 1\n");
+    return 1;
+  }
+
+  int ten = 10;
+  for(int iter = 1; iter &lt; power; ++iter){
+    ten = ten * 10;
+  }
+
+  //printf(" %d\n", ten);
+
+  return ten;
+}
+
+typedef struct {
+  uint8_t      flag;
+  uint8_t has_joker;
+  uint8_t    *cards;
+  uint8_t   *counts;
+  int64_t       bid;
+
+} Hand;
+
+
+//13 12 11 10  9 8 7 6 5 4  3  2  1
+//65 75 81 74 84 8 7 6 5 4  3  2  1
+// A  K  Q  J  T 9 8 7 6 5  4  3  2
+
+void set_flag(Hand *h){
+
+  h-&gt;flag = 0;
+  uint8_t two_count = 0;
+  uint8_t three_count = 0;
+  uint8_t four_count  = 0;
+  uint8_t five_count  = 0;
+
+  for(size_t i = 0; i &lt; 13; ++i){
+    if(h-&gt;counts[i] == 5){
+      five_count += 1;
+    }
+
+    if(h-&gt;counts[i] == 4){
+      four_count += 1;
+    }
+
+    if(h-&gt;counts[i] == 3){
+      three_count += 1;
+    }
+
+    if(h-&gt;counts[i] == 2){
+       two_count += 1;
+    }
+
+  }
+
+
+  if(two_count == 1){
+
+    if(h-&gt;has_joker &gt; 0){
+      h-&gt;flag = 3;
+    }else{
+      h-&gt;flag = 1;
+    }
+
+  }
+
+  if(two_count == 2){
+
+    if(h-&gt;has_joker == 1){
+      h-&gt;flag = 4;
+    }else if(h-&gt;has_joker == 2){
+      h-&gt;flag = 5;
+    }else{
+      h-&gt;flag = 2;
+    }
+
+  }
+
+  if(three_count == 1){
+    if(h-&gt;has_joker &gt;0){
+      h-&gt;flag = 5;
+    }else{
+      h-&gt;flag = 3;
+    }
+  }
+
+  if(three_count == 1 && two_count == 1){
+    if(h-&gt;has_joker &gt; 0){
+      h-&gt;flag = 6;
+    }else{
+      h-&gt;flag = 4;
+    }
+  }
+
+  if(four_count == 1){
+    if(h-&gt;has_joker &gt; 0){
+      h-&gt;flag = 6;
+    }else{
+      h-&gt;flag = 5;
+    }
+  }
+
+  if(five_count == 1){
+    h-&gt;flag = 6;
+  }
+
+  if(h-&gt;flag == 0 && (h-&gt;has_joker &gt; 0)){
+    h-&gt;flag = 1;
+  }
+
+}
+
+int8_t h1_is_bigger(Hand h1, Hand h2){
+
+  int8_t sum = 0;
+
+  sum += (h1.cards[0] - h2.cards[0]);
+
+  if(sum != 0){
+    if (sum &gt; 0) {
+      return 1;
+    }else{
+      return 0;
+    }
+  }
+
+  sum += (h1.cards[1] - h2.cards[1]);
+
+  if(sum != 0){
+    if (sum &gt; 0) {
+      return 1;
+    }else{
+      return 0;
+    }
+  }
+
+  sum += (h1.cards[2] - h2.cards[2]);
+
+  if(sum != 0){
+    if (sum &gt; 0) {
+      return 1;
+    }else{
+      return 0;
+    }
+  }
+
+  sum += (h1.cards[3] - h2.cards[3]);
+
+  if(sum != 0){
+    if (sum &gt; 0) {
+      return 1;
+    }else{
+      return 0;
+    }
+  }
+
+  sum += (h1.cards[4] - h2.cards[4]);
+
+  if(sum != 0){
+    if (sum &gt; 0) {
+      return 1;
+    }else{
+      return 0;
+    }
+  }else{
+    return 3;
+  }
+
+  assert(sum!=0);
+}
+
+void inc_card_count(Hand *h, char c, size_t idx){
+
+  switch(c){
+    case('A'):{
+      h-&gt;cards[idx] = 13;
+      h-&gt;counts[12]++;
+    }break;
+
+    case('K'):{
+      h-&gt;cards[idx] = 12;
+      h-&gt;counts[11]++;
+    }break;
+
+    case('Q'):{
+      h-&gt;cards[idx] = 11;
+      h-&gt;counts[10]++;
+    }break;
+
+    case('T'):{
+      h-&gt;cards[idx] = 10;
+      h-&gt;counts[9]++;
+    }break;
+
+    case('9'):{
+      h-&gt;cards[idx] = 9;
+      h-&gt;counts[8]++;
+    }break;
+
+    case('8'):{
+      h-&gt;cards[idx] = 8;
+      h-&gt;counts[7]++;
+    }break;
+
+    case('7'):{
+      h-&gt;cards[idx] = 7;
+      h-&gt;counts[6]++;
+    }break;
+
+    case('6'):{
+      h-&gt;cards[idx] = 6;
+      h-&gt;counts[5]++;
+    }break;
+
+    case('5'):{
+      h-&gt;cards[idx] = 5;
+      h-&gt;counts[4]++;
+    }break;
+
+    case('4'):{
+      h-&gt;cards[idx] = 4;
+      h-&gt;counts[3]++;
+    }break;
+
+    case('3'):{
+      h-&gt;cards[idx] = 3;
+      h-&gt;counts[2]++;
+    }break;
+
+    case('2'):{
+      h-&gt;cards[idx] = 2;
+      h-&gt;counts[1]++;
+    }break;
+
+    case('J'):{
+      h-&gt;cards[idx] = 1;
+      h-&gt;counts[0]++;
+      h-&gt;has_joker++;
+    }break;
+
+  };
+}
+
+typedef struct {
+  Hand *elements;
+  size_t size;
+  size_t held;
+} Hand_vec;
+
+Hand_vec hand_v_alloc(size_t size){
+  Hand_vec h;
+  h.elements = malloc(sizeof(Hand) * size);
+  VEC_ASSERT(h.elements != NULL);
+  h.size  = size;
+  h.held = 0;
+  return h;
+}
+
+void Hand_vec_resize(Hand_vec *v, size_t new_size){
+  v-&gt;elements = realloc(v-&gt;elements, sizeof(Hand)*new_size);
+  v-&gt;size = new_size;
+}
+
+void Hand_vec_push_times_2_realloc(Hand_vec *v, Hand new_hand){
+  if(v-&gt;held+1 &gt; v-&gt;size){
+    Hand_vec_resize(v, v-&gt;size*2);
+  }
+
+  if(v-&gt;held &gt; 0){
+    if( h1_is_bigger(new_hand,v-&gt;elements[(v-&gt;held)-1]) == 0 ){
+      v-&gt;elements[v-&gt;held] = new_hand;
+    }else{
+      int start_i = (v-&gt;held)-1;
+      Hand comp_hand;
+
+      for(; start_i &gt;= 0; --start_i){
+        comp_hand = v-&gt;elements[start_i];
+        if(h1_is_bigger(comp_hand, new_hand)){
+          break;
+        }else{
+          v-&gt;elements[start_i+1] = comp_hand;
+          v-&gt;elements[start_i]   = new_hand;
+        }
+      }
+    }
+
+  }else{
+    v-&gt;elements[v-&gt;held] = new_hand;
+  }
+
+  v-&gt;held++;
+}
+
+void print_hand(Hand h){
+  //log_int64(h.total);
+  //printf("\n");
+
+  for(size_t i = 0; i &lt; 5; i++){
+    printf(" %d ", h.cards[i]);
+  }
+
+  printf("\n");
+
+  log_int64(h.bid);
+  printf("\n");
+  printf("----------\n");
+}
+
+Hand hand_alloc(){
+  Hand h;
+  h.cards = malloc(sizeof(uint8_t)*5);
+  VEC_ASSERT(h.cards != NULL);
+
+  h.counts = malloc(sizeof(uint8_t)*13);
+  VEC_ASSERT(h.counts != NULL);
+
+  for(size_t i = 0; i &lt; 13; ++i){
+    h.counts[i] = 0;
+  }
+
+  h.bid = 0;
+  h.has_joker = 0;
+  return h;
+}
+
+int main(void){
+  Input inpt = input_alloc("BIG");
+
+  Hand_vec five_of_a_kinds  = hand_v_alloc(2);
+  Hand_vec four_of_a_kinds  = hand_v_alloc(2);
+  Hand_vec full_houses      = hand_v_alloc(2);
+  Hand_vec three_of_a_kinds = hand_v_alloc(2);
+  Hand_vec two_pairs        = hand_v_alloc(2);
+  Hand_vec one_pairs        = hand_v_alloc(2);
+  Hand_vec high_cards       = hand_v_alloc(2);
+
+  uint64_t total_hands = 0;
+
+  for(size_t i = 0; i &lt; inpt.size; ++i){
+    if(inpt.buffer[i] == ' '){
+
+      Hand to_push = hand_alloc();
+      to_push.cards[0] = inpt.buffer[i-5];
+      to_push.cards[1] = inpt.buffer[i-4];
+      to_push.cards[2] = inpt.buffer[i-3];
+      to_push.cards[3] = inpt.buffer[i-2];
+      to_push.cards[4] = inpt.buffer[i-1];
+
+      for(size_t j = 0; j &lt; 5; ++j){
+        inc_card_count(&to_push, to_push.cards[j], j);
+      }
+
+      set_flag(&to_push);
+
+      ++i;
+      int64_t bid = char_to_i64(inpt.buffer[i]);
+      ++i;
+
+      while(is_digit_char(inpt.buffer[i])){
+        bid = bid*10;
+        bid += char_to_i64(inpt.buffer[i]);
+        ++i;
+      }
+
+      to_push.bid = bid;
+      //free(to_push.cards);
+      free(to_push.counts);
+
+      if(to_push.flag == 0){
+        Hand_vec_push_times_2_realloc(&high_cards, to_push);
+      }else if(to_push.flag == 1){
+        Hand_vec_push_times_2_realloc(&one_pairs, to_push);
+      }else if(to_push.flag == 2){
+        Hand_vec_push_times_2_realloc(&two_pairs, to_push);
+      }else if(to_push.flag == 3){
+        Hand_vec_push_times_2_realloc(&three_of_a_kinds, to_push);
+      }else if(to_push.flag == 4){
+        Hand_vec_push_times_2_realloc(&full_houses, to_push);
+      }else if(to_push.flag == 5){
+        Hand_vec_push_times_2_realloc(&four_of_a_kinds, to_push);
+      }else if(to_push.flag == 6){
+        Hand_vec_push_times_2_realloc(&five_of_a_kinds, to_push);
+      }
+
+
+      ++total_hands;
+    }
+  }
+
+  printf("MAX SCORE");
+  log_int64(total_hands);
+  printf("\n");
+
+  uint64_t total_contents = five_of_a_kinds.held+four_of_a_kinds.held + full_houses.held + three_of_a_kinds.held + two_pairs.held + one_pairs.held + high_cards.held;
+
+  printf("TOTAL CAP");
+  log_uint64(total_contents);
+  printf("\n");
+
+  uint64_t sum = 0;
+  if(five_of_a_kinds.held != 0){
+    printf("------five ok------\n");
+    for(size_t i = 0; i &lt; five_of_a_kinds.held; ++i){
+      sum += (total_hands*five_of_a_kinds.elements[i].bid);
+      total_hands = total_hands - 1;
+      print_hand(five_of_a_kinds.elements[i]);
+    }
+  }
+
+  if(four_of_a_kinds.held != 0){
+    printf("------four ok------\n");
+    for(size_t i = 0; i &lt; four_of_a_kinds.held; ++i){
+      sum += (total_hands*four_of_a_kinds.elements[i].bid);
+      total_hands = total_hands - 1;
+      print_hand(four_of_a_kinds.elements[i]);
+    }
+  }
+
+  if(full_houses.held != 0){
+    printf("------fh------\n");
+    for(size_t i = 0; i &lt; full_houses.held; ++i){
+      sum += (total_hands*full_houses.elements[i].bid);
+      total_hands = total_hands - 1;
+      print_hand(full_houses.elements[i]);
+    }
+  }
+
+  if(three_of_a_kinds.held != 0){
+    printf("------tok------\n");
+    for(size_t i = 0; i &lt; three_of_a_kinds.held; ++i){
+      sum += (total_hands*three_of_a_kinds.elements[i].bid);
+      total_hands = total_hands - 1;
+      print_hand(three_of_a_kinds.elements[i]);
+    }
+  }
+
+  if(two_pairs.held != 0){
+    printf("------tp------\n");
+    for(size_t i = 0; i &lt; two_pairs.held; ++i){
+      sum += (total_hands*two_pairs.elements[i].bid);
+      total_hands = total_hands - 1;
+      print_hand(two_pairs.elements[i]);
+    }
+  }
+
+  if(one_pairs.held != 0){
+    printf("------op------\n");
+    for(size_t i = 0; i &lt; one_pairs.held; ++i){
+      sum += (total_hands*one_pairs.elements[i].bid);
+      total_hands = total_hands - 1;
+      print_hand(one_pairs.elements[i]);
+    }
+  }
+
+  if(high_cards.held != 0){
+    for(size_t i = 0; i &lt; high_cards.held; ++i){
+      sum += (total_hands*high_cards.elements[i].bid);
+      total_hands = total_hands - 1;
+      print_hand(high_cards.elements[i]);
+    }
+  }
+
+  log_uint64(sum);
+  printf("\n");
+
+  return(0);
+}
+</pre>
+</body>
+</html>
