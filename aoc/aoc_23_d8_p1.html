@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<title>AOC 2023 D8</title>
+<head>
+  <meta name="color-scheme" content="light dark"></meta>
+<style>
+  pre {
+     word-wrap: break-word;
+     white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<pre>
+/* =========================================================================
+   aoc_23_d8_p1.c - _m2sprite_ solution to Advent of Code 2023 Day 08 Part 1
+   ========================================================================= */
+#define VEC_IMPLEMENTATION
+#include "vec.h"
+#define INPT_IMPLEMENTATION
+#include "inpt.h"
+#define DEBUG
+
+void log_string(const char *string){
+  printf("%s", string);
+}
+
+void log_int64(int64_t value){
+  printf(" %" PRId64 " ", value);
+}
+
+void log_uint64(uint64_t value){
+  printf(" %" PRIu64 " ", value);
+}
+
+void log_uint8(uint8_t value){
+  printf(" %" PRIu8 " ", value);
+}
+
+int8_t is_digit_char(char c){
+  return (c&gt;47 && c&lt;58);
+}
+
+int64_t char_to_i64(char c){
+  return (int64_t)(c - 48);
+}
+
+typedef struct{
+  char   name[3];
+  size_t LR[2];
+}Node;
+
+typedef struct{
+  Node *elements;
+  size_t size;
+}Node_vec;
+
+Node_vec node_vec_alloc(size_t size){
+  Node_vec v;
+  v.elements = malloc(sizeof(Node)*size);
+  VEC_ASSERT(v.elements != NULL);
+  v.size=size;
+  return v;
+}
+
+uint8_t is_even(size_t size){
+  return((size%2 == 0));
+}
+
+int main(void){
+  Input inpt = input_alloc("smol3");
+
+  int64_t nl_ctr = 0;
+  uint8_vec instructions = uint8_vec_alloc(4);
+
+  size_t zzz_idx = 252525;
+  Node_vec arena = node_vec_alloc(zzz_idx+1);
+
+  size_t current_idx = 0;
+
+  for(size_t char_i = 0; char_i &lt; inpt.size; ++char_i){
+
+    if(inpt.buffer[char_i] == '\n'){
+      if(nl_ctr &gt; 1){
+        size_t node_idx = (10000*(inpt.buffer[char_i-16]-65))
+                         +(   100*(inpt.buffer[char_i-15]-65))
+                         +(       (inpt.buffer[char_i-14]-65));
+
+        printf("%c", inpt.buffer[char_i-16]);
+        printf("%c", inpt.buffer[char_i-15]);
+        printf("%c %zu ", inpt.buffer[char_i-14],node_idx);
+        size_t left_idx = (10000*(inpt.buffer[char_i-9]-65))
+                         +(   100*(inpt.buffer[char_i-8]-65))
+                         +(       (inpt.buffer[char_i-7]-65));
+
+        printf("%c", inpt.buffer[char_i-9]);
+        printf("%c", inpt.buffer[char_i-8]);
+        printf("%c %zu ", inpt.buffer[char_i-7],left_idx);
+        size_t right_idx = (10000*(inpt.buffer[char_i-4]-65))
+                          +(  100*(inpt.buffer[char_i-3]-65))
+                          +(      (inpt.buffer[char_i-2]-65));
+
+        printf("%c", inpt.buffer[char_i-4]);
+        printf("%c", inpt.buffer[char_i-3]);
+        printf("%c %zu ", inpt.buffer[char_i-2],right_idx);
+
+        arena.elements[node_idx].name[0]= inpt.buffer[char_i-16];
+        arena.elements[node_idx].name[1]= inpt.buffer[char_i-15];
+        arena.elements[node_idx].name[2]= inpt.buffer[char_i-14];
+        arena.elements[node_idx].LR[0] = left_idx;
+        arena.elements[node_idx].LR[1]= right_idx;
+
+        printf("\n");
+      }
+      ++nl_ctr;
+    }
+
+    if(nl_ctr == 0){
+      if(inpt.buffer[char_i] == 'R'){
+        uint8_vec_push_times_2_realloc(&instructions, 1);
+      }else if(inpt.buffer[char_i] == 'L'){
+        uint8_vec_push_times_2_realloc(&instructions, 0);
+      }
+    }
+
+  }//populate arena
+
+  uint8_vec_print(instructions);
+  printf("instructions size: %zu\n", instructions.held);
+  uint8_t is_inst_even = is_even(instructions.held);
+  printf("is size even: %d\n", is_inst_even);
+
+  //find path i would need to take during population of the vector
+  //figure out with math how many shifts we'd need to do for the right comb to pop up
+  //^didnt end up doing this just some notes that i was thinking of maybe a more eff approach
+  //finding the path i would have to take and then seeing how many offsets it would take for my intsruction set to match it
+  int64_t inst_amt = 0;
+
+  for(size_t i = 0; i &lt; instructions.held;){
+    uint8_t instruction =  instructions.elements[i];
+    printf("from %s ", arena.elements[current_idx].name);
+    current_idx = arena.elements[current_idx].LR[instruction];
+    printf("to %s %zu \n",arena.elements[current_idx].name, i);
+
+    ++inst_amt;
+
+    if(current_idx == zzz_idx){
+      break;
+    }
+    if(i==(instructions.held-1)){
+      i=0;
+    }else{
+      ++i;
+    }
+  }
+
+  log_int64(inst_amt);
+  printf("\n");
+
+  free(inpt.buffer);
+  free(instructions.elements);
+  free(arena.elements);
+  return (0);
+}
+</pre>
+</body>
+</html>
