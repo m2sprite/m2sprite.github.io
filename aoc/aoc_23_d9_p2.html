@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<title>AOC 2023 D9</title>
+<head>
+  <meta name="color-scheme" content="light dark"></meta>
+<style>
+  pre {
+     word-wrap: break-word;
+     white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<pre>
+/* =========================================================================
+   aoc_23_d9_p2.c - _m2sprite_ solution to Advent of Code 2023 Day 09 Part 2
+   ========================================================================= */
+#define VEC_IMPLEMENTATION
+#include "vec.h"
+
+#define INPT_IMPLEMENTATION
+#include "inpt.h"
+
+int64_t char_to_i64(char c){
+  return (int64_t)(c - 48);
+}
+
+int8_t is_digit_char(char c){
+  return (c&gt;47 && c&lt;58);
+}
+
+int8_t is_neg_sign(char c){
+  return (c == '-');
+}
+
+int64_vec numbers_from_to(char *buffer,size_t from, size_t to){
+  int64_vec warm = int64_vec_alloc(1);
+
+  size_t last_neg_sign = 0;
+
+  for(size_t i = from; i &lt;= to; ++i){
+
+    if(is_neg_sign(buffer[i])){
+      last_neg_sign = i;
+    }
+
+    if(is_digit_char(buffer[i])){
+      size_t start_of_digits = i;
+
+      int64_t found_number = char_to_i64(buffer[i]);
+      ++i;
+
+      while(is_digit_char(buffer[i])){
+        found_number = found_number *10;
+        found_number += char_to_i64(buffer[i]);
+        ++i;
+      }
+
+      if(last_neg_sign == (start_of_digits-1)){
+        found_number = found_number*-1;
+      }
+
+      int64_vec_push_times_2_realloc(&warm,found_number);
+    }
+
+
+  }
+
+  if(warm.held == 0){
+    printf("found no numbers on line\n");
+  }
+
+  return warm;
+}
+
+void log_int64(int64_t value){
+  printf(" %" PRId64 " ", value);
+}
+
+void vec_diff(int64_vec v, int64_t *total_sum){
+  assert(v.held &gt; 1);
+
+  int64_t first_diff=0;
+  uint8_t all_same=1;
+  int64_t sum = v.elements[0];
+
+  for(size_t i = 1; i &lt; v.held;){
+
+    int64_t diff = v.elements[i-1] - v.elements[i];
+    v.elements[i-1] = diff;
+
+    if(first_diff == 0){
+      first_diff = diff;
+    }else if(diff!=first_diff){
+      all_same = 0;
+    }
+
+    log_int64(diff);
+
+    if((i == v.held-1) && (all_same == 1)){
+      printf("\n----------all_same-------\n");
+      sum+=v.elements[0];
+      break;
+    }else if(i == v.held-1){
+      printf("\n");
+      sum+=v.elements[0];
+      i = 0;
+      all_same = 1;
+      first_diff = 0;
+      --v.held;
+    }
+
+    if(v.held == 2){
+      sum+=(v.elements[0] - v.elements[1]);
+      printf("\n two els left\n");
+      break;
+    }
+    ++i;
+  }
+
+  log_int64(sum);
+  printf("\n-----------------\n");
+
+  *total_sum +=(sum);
+}
+
+
+int main(void){
+  Input inpt = input_alloc("BIG");
+
+  size_t last_nl_idx = 0;
+  int64_t total_sum = 0;
+
+  for(size_t char_i = 0; char_i &lt; inpt.size; ++char_i){
+    if(inpt.buffer[char_i] == '\n'){
+      int64_vec line_vec = numbers_from_to(inpt.buffer,last_nl_idx,char_i);
+      int64_vec_print(line_vec);
+      vec_diff(line_vec, &total_sum);
+      last_nl_idx = char_i;
+    }
+  }
+  printf("TOTAL SUM: \n");
+  log_int64(total_sum);
+
+  return (0);
+}
+</pre>
+</body>
+</html>
