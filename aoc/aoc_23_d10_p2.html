@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html>
+<title>AOC 2023 D10</title>
+<head>
+  <meta name="color-scheme" content="light dark"></meta>
+<style>
+  pre {
+     word-wrap: break-word;
+     white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<pre>
+/* ==========================================================================
+   aoc_23_d10_p2.c - _m2sprite_ solution to Advent of Code 2023 Day 10 Part 2
+   ========================================================================== */
+#include &lt;errno.h&gt;
+#include &lt;string.h&gt;
+#define VEC_IMPLEMENTATION
+#include "vec.h"
+
+#define INPT_IMPLEMENTATION
+#include "inpt.h"
+
+int64_t char_to_i64(char c){
+  return (int64_t)(c - 48);
+}
+
+int8_t is_digit_char(char c){
+  return (c&gt;47 && c&lt;58);
+}
+
+int8_t is_neg_sign(char c){
+  return (c == '-');
+}
+
+void log_int64(int64_t value){
+  printf(" %" PRId64 " ", value);
+}
+
+void log_uint32(uint32_t value){
+  printf(" %" PRIu32 " ", value);
+}
+
+#define BLACK 0x00000000
+#define GREEN 0xFF00FF00
+#define WHITE 0xFFFFFFFF
+#define PINK  0xFFFF00FF
+#define BLUE  0xFFFF0000
+#define RED   0xFF0000FF
+#define TURQ  0xFF6A8C00
+
+#define BORDER WHITE
+#define DOT  PINK
+
+typedef uint32_t Color32;
+
+
+void update_directional_state(int8_t *dir_state, char current_char){
+
+  //-&gt;7
+  if(current_char == 55 && *dir_state == 1){
+    *dir_state = 2;
+  }
+
+  //-&gt;J
+  if(current_char == 74 && *dir_state == 1){
+    *dir_state = -2;
+  }
+
+  //F&lt;-
+  if(current_char == 70 && *dir_state == -1){
+    *dir_state = 2;
+  }
+
+  //L&lt;-
+  if(current_char == 76 && *dir_state == -1){
+    *dir_state = -2;
+  }
+  //RIGHT LEFT
+
+  //7
+  //^
+  if(current_char == 55 && *dir_state == -2){
+    *dir_state = -1;
+  }
+
+  //F
+  //^
+  if(current_char == 70 && *dir_state == -2){
+    *dir_state = 1;
+  }
+
+  //\/
+  //L
+  if(current_char == 76 && *dir_state == 2){
+    *dir_state = 1;
+  }
+
+  //\/
+  //J
+  if(current_char == 74 && *dir_state == 2){
+    *dir_state = -1;
+  }
+  //ABOVE BELOW
+}
+
+void move(size_t *idx, int8_t state, size_t stride){
+  switch(state){
+    case(2): {*idx+=stride; /*printf("move down\n")*/;}break;
+    case(-2):{*idx-=stride;/*printf("move up\n")*/;}break;
+    case(1): {++*idx;/*printf("move right\n")*/;}break;
+    case(-1):{--*idx;/*printf("move left\n")*/;}break;
+  }
+}
+
+void ppm_dump(const char *file_path, Color32 *img, int img_width, int img_height, size_t img_size){
+
+  FILE *f = fopen(file_path, "wb");
+  if(f==NULL){
+    fprintf(stderr,"ERROR: could not write into file %s: %s\n", file_path, strerror(errno) );
+    exit(1);
+  }
+
+  fprintf(f, "P6\n%d %d 225\n", img_width, img_height);
+
+  for(size_t i =0; i &lt; img_size; ++i){
+    uint32_t pixel = img[i];
+    uint8_t bytes[3] = {
+      (pixel&0x0000FF)&gt;&gt;8*0,
+      (pixel&0x00FF00)&gt;&gt;8*1,
+      (pixel&0xFF0000)&gt;&gt;8*2,
+    };
+    fwrite(bytes, sizeof(bytes),1,f);
+    assert(!ferror(f));
+  }
+
+  int ret = fclose(f);
+  assert(ret==0);
+}
+
+void fill_image(Color32 color, Color32 *img, size_t img_size){
+  for(size_t i =0; i &lt; img_size; ++i){
+    img[i] = color;
+  }
+}
+
+void fill_image_borders(Input instructions, Color32 *img){
+
+  for(size_t inst_y = 0; inst_y &lt; 140; ++inst_y){
+    for(size_t inst_x = 0; inst_x &lt; 140; ++inst_x){
+
+      size_t img_translate =  ((inst_y*420)*3)+(inst_x*3);
+      char inst_char = instructions.buffer[(inst_y*141)+inst_x];
+
+      /*
+      size_t img_y = inst_y*3;
+      size_t img_x = inst_x*3;
+      */
+
+      if(inst_char == 'F'){
+
+        //printf("%c",inst_char);
+        //img[img_translate] = BORDER;
+        //img[img_translate+1] = BORDER;
+        //img[img_translate+2] = BORDER;
+
+        //img[img_translate+420] = BORDER;
+
+        if(instructions.buffer[(inst_y*141)+inst_x+1] == '.'){
+          img[img_translate+420+3] = BORDER;
+        }
+
+        img[img_translate+420+1] = BORDER;
+        img[img_translate+420+2] = BORDER;
+
+        //img[img_translate+840] = BORDER;
+        img[img_translate+840+1] = BORDER;
+        //img[img_translate+840+2] = BORDER;
+
+      }else if(inst_char == '7'){
+        //img[img_translate] = BORDER;
+        //img[img_translate+1] = BORDER;
+        //img[img_translate+2] = BORDER;
+
+        if(instructions.buffer[(inst_y*141)+inst_x-1] == '.'){
+          img[img_translate+420-1] = BORDER;
+        }
+
+        if(instructions.buffer[(inst_y*141)+inst_x+141] == '.'){
+          img[img_translate+(420*3)+1] = BORDER;
+        }
+
+        img[img_translate+420] = BORDER;
+        img[img_translate+420+1] = BORDER;
+        //img[img_translate+420+2] = BORDER;
+
+        //img[img_translate+840] = BORDER;
+        img[img_translate+840+1] = BORDER;
+        //img[img_translate+840+2] = BORDER;
+
+      }else if(inst_char == ('|')){
+        //img[img_translate] = BORDER;
+        img[img_translate+1] = BORDER;
+        //img[img_translate+2] = BORDER;
+
+        //img[img_translate+420] = BORDER;
+        img[img_translate+420+1] = BORDER;
+        //img[img_translate+420+2] = BORDER;
+
+        //img[img_translate+840] = BORDER;
+        img[img_translate+840+1] = BORDER;
+        //img[img_translate+840+2] = BORDER;
+      }else if(inst_char == ('-')){
+        //img[img_translate] = BORDER;
+        //img[img_translate+1] = BORDER;
+        //img[img_translate+2] = BORDER;
+
+        img[img_translate+420] = BORDER;
+        img[img_translate+420+1] = BORDER;
+        img[img_translate+420+2] = BORDER;
+
+        //img[img_translate+840] = BORDER;
+        //img[img_translate+840+1] = BORDER;
+        //img[img_translate+840+2] = BORDER;
+      }else if(inst_char == 'L'){
+        //img[img_translate] = BORDER;
+        img[img_translate+1] = BORDER;
+        //img[img_translate+2] = BORDER;
+
+        //img[img_translate+420] = BORDER;
+        img[img_translate+420+1] = BORDER;
+        img[img_translate+420+2] = BORDER;
+
+        if(instructions.buffer[(inst_y*141)+inst_x+1] == '.'){
+        img[img_translate+420+3] = BORDER;
+
+
+        }
+
+        //img[img_translate+840] = BORDER;
+        //img[img_translate+840+1] = BORDER;
+        //img[img_translate+840+2] = BORDER;
+       }else if(inst_char == 'J'){
+        //img[img_translate] = BORDER;
+        img[img_translate+1] = BORDER;
+        //img[img_translate+2] = BORDER;
+
+        img[img_translate+420] = BORDER;
+        img[img_translate+420+1] = BORDER;
+        //img[img_translate+420+2] = BORDER;
+
+        //img[img_translate+840] = BORDER;
+        //img[img_translate+840+1] = BORDER;
+        //img[img_translate+840+2] = BORDER;
+      }else if(inst_char == '.'){
+        img[img_translate+420+1] = DOT;
+      }
+    }
+  }
+}
+
+void look_up(Color32 *image,size_t width, size_t position, uint32_vec *que){
+  if(position &gt;= width){
+    if(image[position-width] == GREEN){
+      uint32_vec_push_times_2_realloc(que,position-width);
+    }
+  }
+}
+
+void look_down(Color32 *image,
+               size_t width,
+               size_t image_size,
+               size_t position,
+               uint32_vec *que){
+
+  if(position &lt; image_size+width){
+
+    if(image[position+width] == GREEN){
+      uint32_vec_push_times_2_realloc(que,position+width);
+    }
+  }
+
+}
+
+void look_left(Color32 *image, size_t width, size_t position, uint32_vec *que){
+  if( position-1 &gt;= 0 && (position%width != 0)){
+    if(image[position-1] == GREEN){
+      uint32_vec_push_times_2_realloc(que,position-1);
+    }
+  }
+}
+
+void look_right(Color32 *image, size_t width,size_t image_size, size_t position, uint32_vec *que){
+
+  if( (position+1 &lt; image_size) && ((position+1)%(width) != 0)){
+    if(image[position+1] == GREEN){
+      uint32_vec_push_times_2_realloc(que,(position+1));
+    }
+  }
+}
+
+int main(void){
+  Input inpt = input_alloc("BIG");
+  Input original = input_alloc("BIG");
+
+  size_t stride = 0;
+  uint8_t set_stride = 0;
+
+  size_t start_idx = 0;
+  uint8_t set_start= 0;
+
+
+  //get stride find s
+  for(size_t char_i = 0; char_i &lt; inpt.size; ++char_i){
+    if(inpt.buffer[char_i] == '\n'){
+      if(set_stride == 0){
+        stride=char_i+1;
+        set_stride = 1;
+      }
+    }
+    if(inpt.buffer[char_i] == 'S'){
+      if(set_start == 0){
+        start_idx=char_i;
+        set_start = 1;
+      }
+    }
+    if(set_stride && set_start){
+      break;
+    }
+  }
+
+  int8_t    path_one_dir_state = 0;
+  int8_t    path_two_dir_state = 0;
+
+  //above us F | 7
+  if( ((int)start_idx - (int)stride) &gt; 0){
+    if( (inpt.buffer[start_idx-stride] == 'F') || (inpt.buffer[start_idx-stride] == '|') || (inpt.buffer[start_idx-stride] == '7')){
+      if(path_one_dir_state == 0){
+        path_one_dir_state = -2;
+      }else if(path_two_dir_state == 0){
+        path_two_dir_state = -2;
+      }
+    }
+  }
+
+  //behind us F L -
+  if(start_idx != 0){
+    if( (inpt.buffer[start_idx-1] == 'F') || (inpt.buffer[start_idx-1] == 'L') || (inpt.buffer[start_idx-1] == '-')){
+      if(path_one_dir_state == 0){
+        path_one_dir_state = -1;
+      }else if(path_two_dir_state == 0){
+        path_two_dir_state = -1;
+      }
+    }
+  }
+
+  //after us 7 J -
+  if(start_idx+1 &lt; inpt.size){
+    if( (inpt.buffer[start_idx+1] == '7') || (inpt.buffer[start_idx+1] == 'J') || (inpt.buffer[start_idx+1] == '-')){
+      if(path_one_dir_state == 0){
+        path_one_dir_state = 1;
+      }else if(path_two_dir_state == 0){
+        path_two_dir_state = 1;
+      }
+    }
+  }
+
+  //below us L | J
+  if(start_idx+stride &lt; inpt.size){
+    if((inpt.buffer[start_idx+stride] == 'L') || (inpt.buffer[start_idx+stride] == '|') || (inpt.buffer[start_idx+stride] == 'J')){
+      if(path_one_dir_state == 0){
+        path_one_dir_state = 2;
+      }else if(path_two_dir_state == 0){
+        path_two_dir_state = 2;
+      }
+    }
+  }
+
+  size_t path_one_idx = start_idx;
+  size_t path_two_idx = start_idx;
+
+  move(&path_one_idx, path_one_dir_state, stride);
+  move(&path_two_idx, path_two_dir_state, stride);
+
+  size_t steps_amt = 1;
+
+  while(path_one_idx != path_two_idx){
+
+    if((inpt.buffer[path_one_idx] &gt; 54) && (inpt.buffer[path_one_idx] &lt; 77)){
+      update_directional_state(&path_one_dir_state, inpt.buffer[path_one_idx]);
+    }
+    inpt.buffer[path_one_idx] = 'a';
+
+
+    move(&path_one_idx, path_one_dir_state, stride);
+
+    if((inpt.buffer[path_two_idx] &gt; 54) && (inpt.buffer[path_two_idx] &lt; 77)){
+      update_directional_state(&path_two_dir_state, inpt.buffer[path_two_idx]);
+    }
+
+    inpt.buffer[path_two_idx] = 'a';
+
+    move(&path_two_idx, path_two_dir_state, stride);
+
+    ++steps_amt;
+  }
+
+  size_t amt_of_nl = 0;
+  for(size_t i = 0 ; i &lt; original.size; ++i){
+    if(original.buffer[i] != '\n'){
+      if(inpt.buffer[i] != 'a'){
+        original.buffer[i] = '.';
+      }
+    }else{
+      ++amt_of_nl;
+    }
+  }
+  size_t height = amt_of_nl*3;
+  size_t width  = (stride-1)*3;
+  size_t image_size = width*height;
+
+  printf("%zu x %zu total size %zu\n", width, height, image_size);
+  Color32 *image = malloc((image_size*sizeof(Color32)));
+
+  fill_image(GREEN, image, image_size);
+  fill_image_borders(original, image);
+
+  size_t pos = (width*height)/2 + width/2;
+  //dont start at center
+  //pos = width;
+
+  uint32_vec pos_que = uint32_vec_alloc(1);
+  pos_que.elements[0] = pos;
+  pos_que.held = 1;
+
+  for(size_t i = 0; i &lt; pos_que.held; ++i){
+
+    size_t pos = pos_que.elements[i];
+    assert(pos &lt; image_size);
+    if(image[pos] != BLUE){
+      image[pos] = BLUE;
+      look_right(image, width, image_size, pos, &pos_que);
+      look_left(image, width, pos, &pos_que);
+      look_up(image, width, pos, &pos_que);
+      look_down(image,width,image_size, pos, &pos_que);
+    }
+    //printf("%zu\n",pos_que.held);
+  }
+
+
+  ppm_dump("maze.ppm",image, width, height, image_size);
+
+  size_t closed_up = 0;
+  for(size_t i = 0; i &lt; image_size; ++i){
+    if(image[i] == PINK){
+      if( (image[i-width] == GREEN) && (image[i+width] == GREEN) && (image[i-1] == GREEN) && (image[i+1] == GREEN) ){
+        closed_up++;
+      }
+    }
+  }
+
+
+  printf("%s", original.buffer);
+  printf("%zu total steps\n", steps_amt);
+  printf("%zu closed_up\n", closed_up);
+  return (0);
+}
+</pre>
+</body>
+</html>
