@@ -427,9 +427,9 @@ int main(void){
   fill_image(GREEN, image, image_size);
   fill_image_borders(original, image);
 
-  size_t pos = (width*height)/2 + width/2;
-  //dont start at center
-  //pos = width;
+  size_t pos = width;
+  //start at center
+  //pos = (width*height)/2 + width/2;
 
   uint32_vec pos_que = uint32_vec_alloc(1);
   pos_que.elements[0] = pos;
